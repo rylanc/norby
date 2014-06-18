@@ -1,5 +1,6 @@
 #include "RubyObject.h"
 #include "common.h"
+#include <vector>
 
 #include <iostream>
 using namespace std;
@@ -59,14 +60,13 @@ Local<Function> RubyObject::GetClass(VALUE klass)
 
 struct NewInstanceCaller
 {
-  NewInstanceCaller(int c, VALUE* v, VALUE k) : argc(c), argv(v), klass(k) {}
+  NewInstanceCaller(std::vector<VALUE> &r, VALUE k) : rubyArgs(r), klass(k) {}
   VALUE operator()() const
   {
-    return rb_class_new_instance(argc, argv, klass);
+    return rb_class_new_instance(rubyArgs.size(), &rubyArgs[0], klass);
   }
 
-  int argc;
-  VALUE* argv;
+  std::vector<VALUE>& rubyArgs;
   VALUE klass;
 };
 
@@ -77,21 +77,15 @@ Handle<Value> RubyObject::New(const Arguments& args)
   if (args.IsConstructCall()) {
     VALUE klass = VALUE(External::Unwrap(args.Data()));
     
-    int argc = args.Length();
-    VALUE* argv = NULL;
-    if (argc > 0) {
-      // TODO: Is there any smart ptr we can use here?
-      argv = new VALUE[argc];
-      for (int i = 1; i < args.Length(); i++) {
-        argv[i - 1] = v8ToRuby(args[i]);
-      }
+    std::vector<VALUE> rubyArgs(args.Length());
+    for (int i = 0; i < args.Length(); i++) {
+      rubyArgs[i] = v8ToRuby(args[i]);
     }
     
-    cout << "Creating new " << rb_class2name(klass) << " with " << argc << " args" << endl;
+    cout << "Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl;
     
     VALUE ex;
-    VALUE obj = SafeRubyCall(NewInstanceCaller(argc, argv, klass), ex);
-    delete [] argv;
+    VALUE obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
     if (ex != Qnil) {
       ThrowException(rubyExToV8(ex));
       return scope.Close(Undefined());
@@ -124,34 +118,37 @@ RubyObject::~RubyObject()
 struct MethodCaller
 {
   MethodCaller(VALUE o, VALUE m, const Arguments& args) :
-    obj(o), methodID(m), argc(args.Length()), argv(NULL)
+    obj(o), methodID(m), rubyArgs(args.Length())
   {
-    if (argc > 0) {
-      argv = new VALUE[argc];
-
-      // TODO: Is this right? Is there a way to determine if a block is expected?
-      if (args[argc-1]->IsFunction()) {
-        cout << "Got a func!" << endl;
-        block = args[--argc].As<Function>();
-      }
-
-      for (int i = 0; i < argc; i++) {
-        argv[i] = v8ToRuby(args[i]);
-      }
+    // TODO: Is this right? Is there a way to determine if a block is expected?
+    if (args.Length() > 0 && args[args.Length()-1]->IsFunction()) {
+      cout << "Got a func!" << endl;
+      block = args[args.Length()-1].As<Function>();
+      rubyArgs.resize(args.Length()-1);
     }
-  }
-  ~MethodCaller()
-  {
-    delete [] argv;
+    
+    for (size_t i = 0; i < rubyArgs.size(); i++) {
+      rubyArgs[i] = v8ToRuby(args[i]);
+    }
   }
 
   VALUE operator()() const
   {
-    if (block.IsEmpty())
-      return rb_funcall2(obj, methodID, argc, argv);
+    cout << "Calling method: " << rb_id2name(methodID) << " with " <<
+      rubyArgs.size() << " args";
+      
+    if (block.IsEmpty()) {
+      cout << endl;
+      
+      return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
+    }
     else {
+      cout << " and a block" << endl;
+      
       // TODO: Probably not available in Ruby < 1.9
-      return rb_block_call(obj, methodID, argc, argv, RUBY_METHOD_FUNC(BlockFunc), (VALUE)this);
+      return rb_block_call(obj, methodID, rubyArgs.size(),
+                           (VALUE*)&rubyArgs[0], RUBY_METHOD_FUNC(BlockFunc),
+                           (VALUE)this);
     }
   }
 
@@ -159,23 +156,21 @@ struct MethodCaller
   {
     HandleScope scope;
     
-    Handle<Value>* argv = new Handle<Value>[argc];
+    std::vector<Handle<Value> > v8Args(argc);
     for (int i = 0; i < argc; i++) {
-      argv[i] = rubyToV8(rbArgv[i]);
+      v8Args[i] = rubyToV8(rbArgv[i]);
     }
 
     MethodCaller* self = reinterpret_cast<MethodCaller*>(data);
     Handle<Value> ret = node::MakeCallback(Context::GetCurrent()->Global(),
-                                           self->block, argc, argv);
-    delete argv;
+                                           self->block, argc, &v8Args[0]);
 
     return v8ToRuby(ret);
   }
 
   VALUE obj;
   VALUE methodID;
-  int argc;
-  VALUE* argv;
+  std::vector<VALUE> rubyArgs;
   // TODO: Should this be persistent?
   Local<Function> block;
 };
@@ -186,8 +181,6 @@ Handle<Value> RubyObject::CallMethod(const Arguments& args)
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
   ID methodID = ID(External::Unwrap(args.Data()));
-
-  cout << "Calling method: " << rb_id2name(methodID) << " with " << args.Length() << " args" << endl;
 
   VALUE ex;
   VALUE res = SafeRubyCall(MethodCaller(self->m_obj, methodID, args), ex);
