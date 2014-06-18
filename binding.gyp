@@ -3,9 +3,9 @@
     {
       "target_name": "ruby_bridge",
       "sources": [
-        "ruby.cpp",
-        "common.cpp",
-        "RubyObject.cpp"
+        "src/ruby.cpp",
+        "src/common.cpp",
+        "src/RubyObject.cpp"
       ],
       "include_dirs": [
         "<!(ruby -e 'puts RbConfig::CONFIG[\"rubyhdrdir\"]')",
