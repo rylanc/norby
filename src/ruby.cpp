@@ -9,6 +9,7 @@ using namespace std;
 
 using namespace v8;
 
+// TODO: Rename? Move? Combine?
 inline
 VALUE GetClass(Handle<Value> nameVal)
 {
@@ -29,21 +30,18 @@ Handle<Value> NewInstance(const Arguments& args) {
   }
 
   VALUE klass = GetClass(args[0]);
-
-  int argc = args.Length() - 1;
-  VALUE* argv = NULL;
-  if (argc > 0) {
-    // TODO: Is there any smart ptr we can use here?
-    argv = new VALUE[argc];
-    for (int i = 1; i < args.Length(); i++) {
-      argv[i - 1] = v8ToRuby(args[i]);
-    }
-  }
-
-  Local<Value> rubyObj = RubyObject::New(klass, argc, argv);
-  delete [] argv;
+  Local<Function> ctor = RubyObject::GetClass(klass);
+  Local<Object> rubyObj = ctor->NewInstance();
 
   return scope.Close(rubyObj);
+}
+
+Handle<Value> GetClass(const Arguments& args) {
+  HandleScope scope;
+  
+  VALUE klass = GetClass(args[0]);
+  
+  return scope.Close(RubyObject::GetClass(klass));
 }
 
 struct RequireCaller
@@ -110,8 +108,8 @@ Handle<Value> Inherits(const Arguments& args)
       rb_funcall(klass, rb_intern("define_method"), 2, rb_str_new(*funcName, funcName.length()), proc);
     }
   }
-
-  return scope.Close(RubyObject::New(klass, 0, NULL));
+  
+  return scope.Close(RubyObject::GetClass(klass)->NewInstance());
 }
 
 Handle<Value> GCStart(const Arguments& args)
@@ -143,6 +141,9 @@ void Init(Handle<Object> exports) {
 
   exports->Set(String::NewSymbol("newInstance"),
                FunctionTemplate::New(NewInstance)->GetFunction());
+               
+  exports->Set(String::NewSymbol("getClass"),
+               FunctionTemplate::New(GetClass)->GetFunction());
 
   exports->Set(String::NewSymbol("gcStart"),
                FunctionTemplate::New(GCStart)->GetFunction());

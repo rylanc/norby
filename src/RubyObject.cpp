@@ -30,7 +30,7 @@ Local<Function> RubyObject::GetClass(VALUE klass)
   if (it == s_functionTemplates.end()) {
     cout << "Creating new class: " << rb_class2name(klass) << endl;
     
-    Local<FunctionTemplate> tpl = FunctionTemplate::New(New2);
+    Local<FunctionTemplate> tpl = FunctionTemplate::New(New, External::Wrap((void*)klass));
     tpl->SetClassName(String::NewSymbol(rb_class2name(klass)));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
@@ -70,29 +70,44 @@ struct NewInstanceCaller
   VALUE klass;
 };
 
-Local<Value> RubyObject::New(VALUE klass, int argc, VALUE* argv)
+Handle<Value> RubyObject::New(const Arguments& args)
 {
-  // TODO: If the created type is a builtin (string, array, etc.) what should this return?
   HandleScope scope;
-
-  const char* className = rb_class2name(klass);
-  cout << "Creating new " << className << " with " << argc << " args" << endl;
-
-  VALUE ex;
-  VALUE obj = SafeRubyCall(NewInstanceCaller(argc, argv, klass), ex);
-  if (ex != Qnil) {
-    ThrowException(rubyExToV8(ex));
+  
+  if (args.IsConstructCall()) {
+    VALUE klass = VALUE(External::Unwrap(args.Data()));
+    
+    int argc = args.Length();
+    VALUE* argv = NULL;
+    if (argc > 0) {
+      // TODO: Is there any smart ptr we can use here?
+      argv = new VALUE[argc];
+      for (int i = 1; i < args.Length(); i++) {
+        argv[i - 1] = v8ToRuby(args[i]);
+      }
+    }
+    
+    cout << "Creating new " << rb_class2name(klass) << " with " << argc << " args" << endl;
+    
+    VALUE ex;
+    VALUE obj = SafeRubyCall(NewInstanceCaller(argc, argv, klass), ex);
+    delete [] argv;
+    if (ex != Qnil) {
+      ThrowException(rubyExToV8(ex));
+      return scope.Close(Undefined());
+    }
+    
+    // Wrap the obj immediately to prevent it from being garbage collected
+    RubyObject *self = new RubyObject(obj);
+    self->Wrap(args.This());
+    
+    return scope.Close(args.This());
+  }
+  else {
+    cerr << "Blerrrrg!" << endl;
+    
     return scope.Close(Undefined());
   }
-
-  // Wrap the obj immediately to prevent it from being garbage collected
-  RubyObject *self = new RubyObject(obj);
-
-  Local<Function> ctor = RubyObject::GetClass(klass);
-  Local<Object> rubyObj = ctor->NewInstance();
-  self->Wrap(rubyObj);
-
-  return scope.Close(rubyObj);
 }
 
 RubyObject::RubyObject(VALUE obj) : m_obj(obj)
