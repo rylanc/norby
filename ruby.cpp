@@ -154,4 +154,4 @@ void Init(Handle<Object> exports) {
                FunctionTemplate::New(Inherits)->GetFunction());
 }
 
-NODE_MODULE(ruby, Init)
+NODE_MODULE(ruby_bridge, Init)
