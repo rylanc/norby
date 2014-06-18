@@ -8,17 +8,53 @@ using namespace v8;
 
 // TODO:
 // - Where do we need to rb_rescue?
-// - Add caching of FunctionTemplates
 // - Modules?
 // - Class inheritance/extending?
 
 VALUE trueArg = Qtrue;
+RubyObject::TplMap RubyObject::s_functionTemplates;
 
 void dumpRubyArgs(int argc, VALUE* argv)
 {
   for (int i = 0; i < argc; i++) {
     cout << i << ": " << StringValueCStr(argv[i]) << endl;
   }
+}
+
+Local<Function> RubyObject::GetClass(VALUE klass)
+{
+  HandleScope scope;
+  
+  Persistent<FunctionTemplate> persistTpl;
+  TplMap::iterator it = s_functionTemplates.find(klass);
+  if (it == s_functionTemplates.end()) {
+    cout << "Creating new class: " << rb_class2name(klass) << endl;
+    
+    Local<FunctionTemplate> tpl = FunctionTemplate::New(New2);
+    tpl->SetClassName(String::NewSymbol(rb_class2name(klass)));
+    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+    VALUE methods = rb_class_public_instance_methods(1, &trueArg, klass);
+    for (int i = 0; i < RARRAY_LEN(methods); i++) {
+      ID methodID = SYM2ID(rb_ary_entry(methods, i));
+      Local<String> methodName = String::New(rb_id2name(methodID));
+
+      Local<FunctionTemplate> methodTemplate =
+        FunctionTemplate::New(CallMethod, External::Wrap((void*)methodID));
+      tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
+    }
+
+    persistTpl = s_functionTemplates[klass] = Persistent<FunctionTemplate>::New(tpl);
+  }
+  else {
+    cout << "Getting existing class: " << rb_class2name(klass) << endl;
+    
+    persistTpl = it->second;
+  }
+
+  Local<Function> ctor = persistTpl->GetFunction();
+  
+  return scope.Close(ctor);
 }
 
 struct NewInstanceCaller
@@ -52,27 +88,8 @@ Local<Value> RubyObject::New(VALUE klass, int argc, VALUE* argv)
   // Wrap the obj immediately to prevent it from being garbage collected
   RubyObject *self = new RubyObject(obj);
 
-  Local<FunctionTemplate> tpl = FunctionTemplate::New();
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
-  tpl->SetClassName(String::NewSymbol(className));
-
-  VALUE methods = rb_class_public_instance_methods(1, &trueArg, klass);
-  self->m_instanceMethods.reserve(RARRAY_LEN(methods));
-  for (int i = 0; i < RARRAY_LEN(methods); i++) {
-    ID methodID = SYM2ID(rb_ary_entry(methods, i));
-    Local<String> methodName = String::New(rb_id2name(methodID));
-
-    self->m_instanceMethods.push_back(methodID);
-    Local<FunctionTemplate> methodTemplate = FunctionTemplate::New(CallMethod, Integer::New(i));
-    tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
-  }
-
-  // TODO: Is this right? Where should this be stored?
-  Persistent<v8::FunctionTemplate> persistTPL = Persistent<FunctionTemplate>::New(tpl);
-
-  Local<Function> ctor = persistTPL->GetFunction();
+  Local<Function> ctor = RubyObject::GetClass(klass);
   Local<Object> rubyObj = ctor->NewInstance();
-
   self->Wrap(rubyObj);
 
   return scope.Close(rubyObj);
@@ -153,8 +170,7 @@ Handle<Value> RubyObject::CallMethod(const Arguments& args)
   HandleScope scope;
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
-  int methodIndex = args.Data()->Int32Value();
-  ID methodID = self->m_instanceMethods[methodIndex];
+  ID methodID = ID(External::Unwrap(args.Data()));
 
   cout << "Calling method: " << rb_id2name(methodID) << " with " << args.Length() << " args" << endl;
 
