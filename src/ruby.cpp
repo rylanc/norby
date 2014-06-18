@@ -127,12 +127,11 @@ void CleanupRuby(void*)
 }
 
 void Init(Handle<Object> exports) {
-  char* argv[] = { "node" };
-  int argc = 1;
-  char** argv2 = argv;
+  int argc = 0;
+  char** argv = NULL;
 
   // TODO: Do we need to call this?
-  ruby_sysinit(&argc, &argv2);
+  ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
   ruby_init();
   ruby_init_loadpath();
