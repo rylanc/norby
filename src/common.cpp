@@ -91,12 +91,13 @@ Handle<Value> rubyExToV8(VALUE ex)
   Local<String> msgStr = String::New(RSTRING_PTR(msg), RSTRING_LEN(msg));
 
   VALUE klass = rb_class_of(ex);
-  if (klass == rb_eArgError)
+  if (klass == rb_eArgError ||
+      klass == rb_eLoadError)
     return scope.Close(Exception::Error(msgStr));
   else if (klass == rb_eTypeError)
     return scope.Close(Exception::TypeError(msgStr));
   else {
-    cerr << "Unknown exception: " << rb_obj_classname(ex) << endl;
+    cerr << "Unknown ruby exception: " << rb_obj_classname(ex) << endl;
     return scope.Close(Exception::Error(msgStr));
   }
 }
