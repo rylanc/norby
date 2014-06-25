@@ -15,9 +15,15 @@ describe('.require', function() {
 
 describe('.getClass', function() {
   
-  it('should return a constructor given an existing class', function() {
+  it('should return a constructor given an existing class name', function() {
     ruby.require('./test/test.rb');
     var Returner = ruby.getClass('Returner');
     expect(Returner).to.be.a('function');
+  });
+  
+  it('should throw an exception given an invalid class name', function() {
+    ruby.require('./test/test.rb');
+    var fn = function() { return ruby.getClass('DoesntExist'); };
+    expect(fn).to.throw(ReferenceError);
   });
 });
