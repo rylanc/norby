@@ -100,7 +100,17 @@ Handle<Value> RubyObject::New(const Arguments& args)
   else {
     cerr << "Blerrrrg!" << endl;
     
-    return scope.Close(Undefined());
+    std::vector<Handle<Value> > argv(args.Length());
+    for (int i = 0; i < args.Length(); i++) {
+      argv[i] = args[i];
+    }
+    
+    VALUE klass = VALUE(External::Unwrap(args.Data()));
+    Local<Function> cons = RubyObject::GetClass(klass);
+    
+    //Local<Value> argv[argc] = { args[0], args[1], args[2] };
+    //Local<Function> cons = args.Callee();
+    return scope.Close(cons->NewInstance(args.Length(), &argv[0]));
   }
 }
 
