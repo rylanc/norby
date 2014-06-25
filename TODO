@@ -1,11 +1,9 @@
 Tests:
- - Passing arguments to ruby (type, value, count)
- - Passing the wrong num of args
- - Ruby blocks
- - Passing args to ruby constructors
- - newInstance
+ - test inherited ruby methods? (e.g. to_s)
  - somehow test garbage collection?
  
 Ruby objects:
  - class/obj variables?
  - convert JS objects to RB hashes? (vice versa)
+ - convert common func names? (e.g. to_s -> toString)
+ - protect inspect calls?
