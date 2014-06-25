@@ -114,3 +114,21 @@ describe('passing arguments', function() {
     });
   });
 });
+
+describe('ruby constructor', function() {
+  ruby.require('./test/test.rb');
+  var ClassTester = ruby.getClass('ClassTester');
+    
+  it('should pass v8 arguments', function() {
+    var tester = new ClassTester('hello');
+    expect(tester.get_val()).to.equal('hello');
+  });
+  
+  it('should handle wrong number of arguments', function() {
+    var fn = function() { return new ClassTester(); };
+    expect(fn).to.throw(Error);
+    
+    fn = function() { return new ClassTester(1, 2); };
+    expect(fn).to.throw(Error);
+  });
+});

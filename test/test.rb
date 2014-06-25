@@ -56,3 +56,29 @@ class ArgsInspector
     return arg == 4.359
   end
 end
+
+class ClassTester
+  def initialize(val)
+    @val = val
+  end
+  def get_val
+    return @val
+  end
+end
+
+class BlockTester
+  def yield_one
+    yield "hello"
+  end
+  def yield_two
+    yield "hello", 2
+  end
+  def iter
+    for i in 0..5
+      yield("hi", i)
+    end
+  end
+  def echo (arg)
+    yield arg
+  end
+end
