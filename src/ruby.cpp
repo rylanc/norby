@@ -9,22 +9,30 @@ using namespace std;
 
 using namespace v8;
 
-// TODO: Rename? Move? Combine?
-inline
-VALUE GetClass(Handle<Value> nameVal)
+struct ClassGetter
 {
-  HandleScope scope;
+  ClassGetter(Handle<Value> nv) : nameVal(nv) {}
+  VALUE operator()() const
+  {
+    HandleScope scope;
 
-  Local<String> className = nameVal->ToString();
+    Local<String> className = nameVal->ToString();
+    ID id = rb_intern(*String::Utf8Value(className));
+    return rb_const_get(rb_cObject, id);
+  }
 
-  ID id = rb_intern(*String::Utf8Value(className));
-  return rb_const_get(rb_cObject, id);
-}
+  Handle<Value> nameVal;
+};
 
+// TODO: Should/could we combine this with RubyObject::GetClass?
 Handle<Value> GetClass(const Arguments& args) {
   HandleScope scope;
-  
-  VALUE klass = GetClass(args[0]);
+
+  VALUE ex;
+  VALUE klass = SafeRubyCall(ClassGetter(args[0]), ex);
+  if (ex != Qnil) {
+    return scope.Close(ThrowException(rubyExToV8(ex)));
+  }
   
   return scope.Close(RubyObject::GetClass(klass));
 }
@@ -76,7 +84,11 @@ Handle<Value> Inherits(const Arguments& args)
   Local<String> name = cons->GetName()->ToString();
   cout << "Inherit called for " << *String::Utf8Value(name) << endl;
 
-  VALUE super = GetClass(args[1]);
+  VALUE ex;
+  VALUE super = SafeRubyCall(ClassGetter(args[0]), ex);
+  if (ex != Qnil) {
+    return scope.Close(ThrowException(rubyExToV8(ex)));
+  }
 
   VALUE klass = rb_define_class(*String::Utf8Value(name), super);
   Local<Function> ctor = RubyObject::GetClass(klass);
