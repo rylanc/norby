@@ -94,6 +94,8 @@ Handle<Value> rubyExToV8(VALUE ex)
   if (klass == rb_eArgError ||
       klass == rb_eLoadError)
     return scope.Close(Exception::Error(msgStr));
+  else if (klass == rb_eNameError)
+    return scope.Close(Exception::ReferenceError(msgStr));
   else if (klass == rb_eTypeError)
     return scope.Close(Exception::TypeError(msgStr));
   else {
