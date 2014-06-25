@@ -21,21 +21,6 @@ VALUE GetClass(Handle<Value> nameVal)
   return rb_const_get(rb_cObject, id);
 }
 
-Handle<Value> NewInstance(const Arguments& args) {
-  HandleScope scope;
-
-  if (args.Length() == 0) {
-    ThrowException(Exception::Error(String::New("no class name specified")));
-    return scope.Close(Undefined());
-  }
-
-  VALUE klass = GetClass(args[0]);
-  Local<Function> ctor = RubyObject::GetClass(klass);
-  Local<Object> rubyObj = ctor->NewInstance();
-
-  return scope.Close(rubyObj);
-}
-
 Handle<Value> GetClass(const Arguments& args) {
   HandleScope scope;
   
@@ -83,6 +68,9 @@ VALUE CallMe(VALUE, VALUE data)
 Handle<Value> Inherits(const Arguments& args)
 {
   HandleScope scope;
+  
+  Local<Integer> bla = args[0].As<Integer>();
+  cout << "bla " << bla.IsEmpty() << endl;
 
   Local<Function> cons = args[0].As<Function>();
   Local<String> name = cons->GetName()->ToString();
@@ -91,14 +79,15 @@ Handle<Value> Inherits(const Arguments& args)
   VALUE super = GetClass(args[1]);
 
   VALUE klass = rb_define_class(*String::Utf8Value(name), super);
+  Local<Function> ctor = RubyObject::GetClass(klass);
 
   Local<Object> proto = cons->Get(String::NewSymbol("prototype")).As<Object>();
   Local<Array> props = proto->GetPropertyNames();
   for (uint32_t i = 0; i < props->Length(); i++) {
     Local<Value> key = props->Get(i);
-    cout << *String::Utf8Value(key->ToString()) << " ? ";
+    //cout << *String::Utf8Value(key->ToString()) << " ? ";
     Local<Value> prop = proto->Get(key);
-    cout << prop->IsFunction() << endl;
+    //cout << prop->IsFunction() << endl;
     if (prop->IsFunction()) {
       String::Utf8Value funcName(key);
       Persistent<Function> *func = new Persistent<Function>(prop.As<Function>());
@@ -109,7 +98,7 @@ Handle<Value> Inherits(const Arguments& args)
     }
   }
   
-  return scope.Close(RubyObject::GetClass(klass)->NewInstance());
+  return scope.Close(ctor);
 }
 
 Handle<Value> GCStart(const Arguments& args)
@@ -137,9 +126,6 @@ void Init(Handle<Object> exports) {
   ruby_init_loadpath();
 
   node::AtExit(CleanupRuby);
-
-  exports->Set(String::NewSymbol("newInstance"),
-               FunctionTemplate::New(NewInstance)->GetFunction());
                
   exports->Set(String::NewSymbol("getClass"),
                FunctionTemplate::New(GetClass)->GetFunction());
@@ -150,7 +136,7 @@ void Init(Handle<Object> exports) {
   exports->Set(String::NewSymbol("require"),
                FunctionTemplate::New(Require)->GetFunction());
 
-  exports->Set(String::NewSymbol("inherits"),
+  exports->Set(String::NewSymbol("_rubyInherits"),
                FunctionTemplate::New(Inherits)->GetFunction());
 }
 
