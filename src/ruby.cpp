@@ -68,47 +68,75 @@ VALUE CallMe(VALUE, VALUE data)
 
   Persistent<Function>* func = reinterpret_cast<Persistent<Function>*>(data);
   Handle<Value> argv[] = {};
+  cout << "Is func? " << *String::Utf8Value((*func)->ToString()) << endl;
   node::MakeCallback(Context::GetCurrent()->Global(), *func, 0, argv);
 
   return Qnil;
 }
 
+// TODO: Is this the best signature?
+VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
+{
+  assert(argc > 0);
+  
+  HandleScope scope;
+  
+  Persistent<Object>* owner;
+  Data_Get_Struct(self, Persistent<Object>, owner);
+  
+  VALUE rbName = rb_id2str(SYM2ID(argv[0]));
+  
+  cout << "MethodMissing called for " << RSTRING_PTR(rbName) << endl;
+  
+  Local<String> v8Name = String::NewSymbol(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
+  Local<Value> prop = (*owner)->Get(v8Name);
+  cout << RSTRING_PTR(rbName) << " is: " << *String::Utf8Value(prop) << endl;
+  if (prop->IsFunction()) {
+    Handle<Value> v8Args[] = {};
+    // TODO: Convert args and ret val
+    node::MakeCallback(*owner, prop.As<Function>(), 0, v8Args);
+    return Qnil;
+  }
+  else
+    return rb_call_super(argc, argv);
+}
+
 Handle<Value> Inherits(const Arguments& args)
 {
   HandleScope scope;
-  
-  Local<Integer> bla = args[0].As<Integer>();
-  cout << "bla " << bla.IsEmpty() << endl;
 
   Local<Function> cons = args[0].As<Function>();
   Local<String> name = cons->GetName()->ToString();
   cout << "Inherit called for " << *String::Utf8Value(name) << endl;
 
   VALUE ex;
-  VALUE super = SafeRubyCall(ClassGetter(args[0]), ex);
+  VALUE super = SafeRubyCall(ClassGetter(args[1]), ex);
   if (ex != Qnil) {
     return scope.Close(ThrowException(rubyExToV8(ex)));
   }
 
   VALUE klass = rb_define_class(*String::Utf8Value(name), super);
   Local<Function> ctor = RubyObject::GetClass(klass);
+  
+  // TODO: Implement responds_to? method
+  rb_define_method(klass, "method_missing", RUBY_METHOD_FUNC(MethodMissing), -1);
 
-  Local<Object> proto = cons->Get(String::NewSymbol("prototype")).As<Object>();
-  Local<Array> props = proto->GetPropertyNames();
-  for (uint32_t i = 0; i < props->Length(); i++) {
-    Local<Value> key = props->Get(i);
-    //cout << *String::Utf8Value(key->ToString()) << " ? ";
-    Local<Value> prop = proto->Get(key);
-    //cout << prop->IsFunction() << endl;
-    if (prop->IsFunction()) {
-      String::Utf8Value funcName(key);
-      Persistent<Function> *func = new Persistent<Function>(prop.As<Function>());
-      //Handle<Value> argv[] = {};
-      //node::MakeCallback(Context::GetCurrent()->Global(), *func, 0, argv);
-      VALUE proc = rb_proc_new(RUBY_METHOD_FUNC(CallMe), VALUE(func));
-      rb_funcall(klass, rb_intern("define_method"), 2, rb_str_new(*funcName, funcName.length()), proc);
-    }
-  }
+  // Local<Object> proto = cons->Get(String::NewSymbol("prototype")).As<Object>();
+  // Local<Array> props = proto->GetPropertyNames();
+  // for (uint32_t i = 0; i < props->Length(); i++) {
+  //   Local<Value> key = props->Get(i);
+  //   //cout << *String::Utf8Value(key->ToString()) << " ? ";
+  //   Local<Value> prop = proto->Get(key);
+  //   //cout << prop->IsFunction() << endl;
+  //   if (prop->IsFunction()) {
+  //     String::Utf8Value funcName(key);
+  //     Persistent<Function> *func = new Persistent<Function>(prop.As<Function>());
+  //     //Handle<Value> argv[] = {};
+  //     //node::MakeCallback(Context::GetCurrent()->Global(), *func, 0, argv);
+  //     VALUE proc = rb_proc_new(RUBY_METHOD_FUNC(CallMe), VALUE(func));
+  //     rb_funcall(klass, rb_intern("define_method"), 2, rb_str_new(*funcName, funcName.length()), proc);
+  //   }
+  // }
   
   return scope.Close(ctor);
 }
@@ -119,6 +147,16 @@ Handle<Value> GCStart(const Arguments& args)
   rb_gc_start();
 
   return scope.Close(Undefined());
+}
+
+Handle<Value> TestExternal(const Arguments& args)
+{
+  HandleScope scope;
+  
+  ID id = rb_intern("String");
+  VALUE klass = rb_const_get(rb_cObject, id);
+  
+  return scope.Close(External::Wrap((void*)klass));
 }
 
 void CleanupRuby(void*)
@@ -150,6 +188,9 @@ void Init(Handle<Object> exports) {
 
   exports->Set(String::NewSymbol("_rubyInherits"),
                FunctionTemplate::New(Inherits)->GetFunction());
+               
+  exports->Set(String::NewSymbol("testExternal"),
+               FunctionTemplate::New(TestExternal)->GetFunction());
 }
 
 NODE_MODULE(ruby_bridge, Init)

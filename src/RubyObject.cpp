@@ -15,13 +15,6 @@ using namespace v8;
 VALUE trueArg = Qtrue;
 RubyObject::TplMap RubyObject::s_functionTemplates;
 
-void dumpRubyArgs(int argc, VALUE* argv)
-{
-  for (int i = 0; i < argc; i++) {
-    cout << i << ": " << StringValueCStr(argv[i]) << endl;
-  }
-}
-
 Local<Function> RubyObject::GetClass(VALUE klass)
 {
   HandleScope scope;
@@ -70,6 +63,23 @@ struct NewInstanceCaller
   VALUE klass;
 };
 
+struct NewInstanceCaller2
+{
+  NewInstanceCaller2(std::vector<VALUE> &r, VALUE k, void* d) : rubyArgs(r), klass(k), data(d) {}
+  VALUE operator()() const
+  {
+    cout << "Wrapping " << data << endl;
+    VALUE obj = Data_Wrap_Struct(klass, NULL, NULL, data);
+    rb_obj_call_init(obj, rubyArgs.size(), &rubyArgs[0]);
+    return obj;
+    //return rb_class_new_instance(rubyArgs.size(), &rubyArgs[0], klass);
+  }
+
+  std::vector<VALUE>& rubyArgs;
+  VALUE klass;
+  void* data;
+};
+
 Handle<Value> RubyObject::New(const Arguments& args)
 {
   HandleScope scope;
@@ -84,8 +94,14 @@ Handle<Value> RubyObject::New(const Arguments& args)
     
     cout << "Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl;
     
+    // TODO: Can/should we use Holder here?
+    //Persistent<Object>* owner = new Persistent<Object>(Persistent<Object>::New(args[0].As<Object>()));
+    //DumpV8Props(*owner);
+    //cout << "Owner: " << *String::Utf8Value(args[0]) << endl;
+    
     VALUE ex;
     VALUE obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
+    //VALUE obj = SafeRubyCall(NewInstanceCaller2(rubyArgs, klass, owner), ex);
     if (ex != Qnil) {
       ThrowException(rubyExToV8(ex));
       return scope.Close(Undefined());
@@ -93,6 +109,7 @@ Handle<Value> RubyObject::New(const Arguments& args)
     
     // Wrap the obj immediately to prevent it from being garbage collected
     RubyObject *self = new RubyObject(obj);
+    //self->m_owner = owner;
     self->Wrap(args.This());
     
     return scope.Close(args.This());
@@ -144,11 +161,11 @@ struct MethodCaller
 
   VALUE operator()() const
   {
-    cout << "Calling method: " << rb_id2name(methodID) << " with " <<
-      rubyArgs.size() << " args";
+    //cout << "Calling method: " << rb_id2name(methodID) << " with " <<
+    //  rubyArgs.size() << " args";
       
     if (block.IsEmpty()) {
-      cout << endl;
+      //cout << endl;
       
       return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
     }
@@ -188,9 +205,19 @@ struct MethodCaller
 Handle<Value> RubyObject::CallMethod(const Arguments& args)
 {
   HandleScope scope;
+  
+  // Persistent<FunctionTemplate> tpl = s_functionTemplates.begin()->second;
+  // Local<Object> bla = args.This()->FindInstanceInPrototypeChain(tpl);
+  // cout << "Internal field count: " << bla->InternalFieldCount() << endl;
+  // cout << "ProtChain: " << *String::Utf8Value(bla->ToString()) << endl;
+  
+  // cout << "Internal field count: " << args.Holder()->InternalFieldCount() << endl;
+  // cout << "This: " << *String::Utf8Value(args.Holder()->ToString()) << endl;
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
   ID methodID = ID(External::Unwrap(args.Data()));
+  
+  //DumpV8Props(*self->m_owner);
 
   VALUE ex;
   VALUE res = SafeRubyCall(MethodCaller(self->m_obj, methodID, args), ex);

@@ -90,6 +90,7 @@ Handle<Value> rubyExToV8(VALUE ex)
   VALUE msg = rb_funcall(ex, rb_intern("message"), 0);
   Local<String> msgStr = String::New(RSTRING_PTR(msg), RSTRING_LEN(msg));
 
+  // TODO: SyntaxError?
   VALUE klass = rb_class_of(ex);
   if (klass == rb_eArgError ||
       klass == rb_eLoadError)
@@ -110,4 +111,26 @@ VALUE RescueCB(VALUE data, VALUE ex)
   *storedEx = ex;
 
   return Qnil;
+}
+
+void DumpRubyArgs(int argc, VALUE* argv)
+{
+  for (int i = 0; i < argc; i++) {
+    VALUE str = rb_funcall2(argv[i], rb_intern("to_s"), 0, NULL);
+    cout << i << ": " << StringValueCStr(str) << endl;
+  }
+}
+
+void DumpV8Props(Handle<Object> obj)
+{
+  HandleScope scope;
+  
+  cout << "Get prop names " << *String::Utf8Value(obj->ToString()) << endl;
+  cout << "? " << obj->IsNull() << endl;
+  Local<Array> propNames = obj->GetPropertyNames();
+  for (uint32_t i = 0; i < propNames->Length(); i++) {
+    Local<Value> key = propNames->Get(i);
+    
+    cout << *String::Utf8Value(key) << endl;
+  }
 }

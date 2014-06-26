@@ -82,3 +82,9 @@ class BlockTester
     yield arg
   end
 end
+
+class InheritTester
+  def make_call
+    call_derived
+  end
+end

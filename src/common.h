@@ -25,3 +25,7 @@ inline VALUE SafeRubyCall(const F& f, VALUE &ex)
   return rb_rescue2(RUBY_METHOD_FUNC(SafeCallWrapper<F>::Func), VALUE(&f),
                     RUBY_METHOD_FUNC(RescueCB), VALUE(&ex), rb_eException, NULL);
 }
+
+// For debugging
+void DumpRubyArgs(int argc, VALUE* argv);
+void DumpV8Props(v8::Handle<v8::Object> obj);
