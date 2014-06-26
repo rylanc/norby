@@ -62,18 +62,6 @@ Handle<Value> Require(const Arguments& args)
   return scope.Close(rubyToV8(res));
 }
 
-VALUE CallMe(VALUE, VALUE data)
-{
-  HandleScope scope;
-
-  Persistent<Function>* func = reinterpret_cast<Persistent<Function>*>(data);
-  Handle<Value> argv[] = {};
-  cout << "Is func? " << *String::Utf8Value((*func)->ToString()) << endl;
-  node::MakeCallback(Context::GetCurrent()->Global(), *func, 0, argv);
-
-  return Qnil;
-}
-
 // TODO: Is this the best signature?
 VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
 {
@@ -86,11 +74,11 @@ VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
   
   VALUE rbName = rb_id2str(SYM2ID(argv[0]));
   
-  cout << "MethodMissing called for " << RSTRING_PTR(rbName) << endl;
+  log("MethodMissing called for " << RSTRING_PTR(rbName) << endl);
   
   Local<String> v8Name = String::NewSymbol(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
   Local<Value> prop = (*owner)->Get(v8Name);
-  cout << RSTRING_PTR(rbName) << " is: " << *String::Utf8Value(prop) << endl;
+  log(RSTRING_PTR(rbName) << " is: " << *String::Utf8Value(prop) << endl);
   if (prop->IsFunction()) {
     Handle<Value> v8Args[] = {};
     // TODO: Convert args and ret val
@@ -107,7 +95,7 @@ Handle<Value> Inherits(const Arguments& args)
 
   Local<Function> cons = args[0].As<Function>();
   Local<String> name = cons->GetName()->ToString();
-  cout << "Inherit called for " << *String::Utf8Value(name) << endl;
+  log("Inherit called for " << *String::Utf8Value(name) << endl);
 
   VALUE ex;
   VALUE super = SafeRubyCall(ClassGetter(args[1]), ex);
@@ -120,23 +108,6 @@ Handle<Value> Inherits(const Arguments& args)
   
   // TODO: Implement responds_to? method
   rb_define_method(klass, "method_missing", RUBY_METHOD_FUNC(MethodMissing), -1);
-
-  // Local<Object> proto = cons->Get(String::NewSymbol("prototype")).As<Object>();
-  // Local<Array> props = proto->GetPropertyNames();
-  // for (uint32_t i = 0; i < props->Length(); i++) {
-  //   Local<Value> key = props->Get(i);
-  //   //cout << *String::Utf8Value(key->ToString()) << " ? ";
-  //   Local<Value> prop = proto->Get(key);
-  //   //cout << prop->IsFunction() << endl;
-  //   if (prop->IsFunction()) {
-  //     String::Utf8Value funcName(key);
-  //     Persistent<Function> *func = new Persistent<Function>(prop.As<Function>());
-  //     //Handle<Value> argv[] = {};
-  //     //node::MakeCallback(Context::GetCurrent()->Global(), *func, 0, argv);
-  //     VALUE proc = rb_proc_new(RUBY_METHOD_FUNC(CallMe), VALUE(func));
-  //     rb_funcall(klass, rb_intern("define_method"), 2, rb_str_new(*funcName, funcName.length()), proc);
-  //   }
-  // }
   
   return scope.Close(ctor);
 }
@@ -161,7 +132,7 @@ Handle<Value> TestExternal(const Arguments& args)
 
 void CleanupRuby(void*)
 {
-  cout << "Cleaning up!" << endl;
+  log("Cleaning up!" << endl);
   ruby_cleanup(0);
 }
 

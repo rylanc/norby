@@ -22,7 +22,7 @@ Local<Function> RubyObject::GetClass(VALUE klass)
   Persistent<FunctionTemplate> persistTpl;
   TplMap::iterator it = s_functionTemplates.find(klass);
   if (it == s_functionTemplates.end()) {
-    cout << "Creating new class: " << rb_class2name(klass) << endl;
+    log("Creating new class: " << rb_class2name(klass) << endl);
     
     Local<FunctionTemplate> tpl = FunctionTemplate::New(New, External::Wrap((void*)klass));
     tpl->SetClassName(String::NewSymbol(rb_class2name(klass)));
@@ -41,7 +41,7 @@ Local<Function> RubyObject::GetClass(VALUE klass)
     persistTpl = s_functionTemplates[klass] = Persistent<FunctionTemplate>::New(tpl);
   }
   else {
-    cout << "Getting existing class: " << rb_class2name(klass) << endl;
+    log("Getting existing class: " << rb_class2name(klass) << endl);
     
     persistTpl = it->second;
   }
@@ -68,7 +68,6 @@ struct NewInstanceCaller2
   NewInstanceCaller2(std::vector<VALUE> &r, VALUE k, void* d) : rubyArgs(r), klass(k), data(d) {}
   VALUE operator()() const
   {
-    cout << "Wrapping " << data << endl;
     VALUE obj = Data_Wrap_Struct(klass, NULL, NULL, data);
     rb_obj_call_init(obj, rubyArgs.size(), &rubyArgs[0]);
     return obj;
@@ -92,7 +91,7 @@ Handle<Value> RubyObject::New(const Arguments& args)
       rubyArgs[i] = v8ToRuby(args[i]);
     }
     
-    cout << "Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl;
+    log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl);
     
     // TODO: Can/should we use Holder here?
     //Persistent<Object>* owner = new Persistent<Object>(Persistent<Object>::New(args[0].As<Object>()));
@@ -115,8 +114,6 @@ Handle<Value> RubyObject::New(const Arguments& args)
     return scope.Close(args.This());
   }
   else {
-    cerr << "Blerrrrg!" << endl;
-    
     std::vector<Handle<Value> > argv(args.Length());
     for (int i = 0; i < args.Length(); i++) {
       argv[i] = args[i];
@@ -138,7 +135,7 @@ RubyObject::RubyObject(VALUE obj) : m_obj(obj)
 
 RubyObject::~RubyObject()
 {
-  cout << "~RubyObject" << endl;
+  log("~RubyObject" << endl);
   rb_gc_unregister_address(&m_obj);
 }
 
@@ -149,7 +146,7 @@ struct MethodCaller
   {
     // TODO: Is this right? Is there a way to determine if a block is expected?
     if (args.Length() > 0 && args[args.Length()-1]->IsFunction()) {
-      cout << "Got a func!" << endl;
+      log("Got a func!" << endl);
       block = args[args.Length()-1].As<Function>();
       rubyArgs.resize(args.Length()-1);
     }
@@ -161,16 +158,15 @@ struct MethodCaller
 
   VALUE operator()() const
   {
-    //cout << "Calling method: " << rb_id2name(methodID) << " with " <<
-    //  rubyArgs.size() << " args";
+    log("Calling method: " << rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
       
     if (block.IsEmpty()) {
-      //cout << endl;
+      log(endl);
       
       return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
     }
     else {
-      cout << " and a block" << endl;
+      log(" and a block" << endl);
       
       // TODO: Probably not available in Ruby < 1.9
       return rb_block_call(obj, methodID, rubyArgs.size(),
@@ -205,14 +201,6 @@ struct MethodCaller
 Handle<Value> RubyObject::CallMethod(const Arguments& args)
 {
   HandleScope scope;
-  
-  // Persistent<FunctionTemplate> tpl = s_functionTemplates.begin()->second;
-  // Local<Object> bla = args.This()->FindInstanceInPrototypeChain(tpl);
-  // cout << "Internal field count: " << bla->InternalFieldCount() << endl;
-  // cout << "ProtChain: " << *String::Utf8Value(bla->ToString()) << endl;
-  
-  // cout << "Internal field count: " << args.Holder()->InternalFieldCount() << endl;
-  // cout << "This: " << *String::Utf8Value(args.Holder()->ToString()) << endl;
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
   ID methodID = ID(External::Unwrap(args.Data()));

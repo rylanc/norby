@@ -44,7 +44,7 @@ VALUE v8ToRuby(Handle<Value> val)
 {
   HandleScope scope;
 
-  cout << "Converting " << *String::Utf8Value(val->ToDetailString()) << " to ruby" << endl;
+  log("Converting " << *String::Utf8Value(val->ToDetailString()) << " to ruby" << endl);
 
   if (val->IsUndefined())
     return Qnil; // TODO: Is this right?
@@ -115,22 +115,24 @@ VALUE RescueCB(VALUE data, VALUE ex)
 
 void DumpRubyArgs(int argc, VALUE* argv)
 {
+#ifndef NDEBUG
   for (int i = 0; i < argc; i++) {
     VALUE str = rb_funcall2(argv[i], rb_intern("to_s"), 0, NULL);
     cout << i << ": " << StringValueCStr(str) << endl;
   }
+#endif
 }
 
 void DumpV8Props(Handle<Object> obj)
 {
+#ifndef NDEBUG
   HandleScope scope;
   
-  cout << "Get prop names " << *String::Utf8Value(obj->ToString()) << endl;
-  cout << "? " << obj->IsNull() << endl;
   Local<Array> propNames = obj->GetPropertyNames();
   for (uint32_t i = 0; i < propNames->Length(); i++) {
     Local<Value> key = propNames->Get(i);
     
     cout << *String::Utf8Value(key) << endl;
   }
+#endif
 }
