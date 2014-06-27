@@ -1,5 +1,6 @@
 Tests:
  - test inherited ruby methods? (e.g. to_s)
+ - check that the class names are correctly set
  - somehow test garbage collection?
  
 Ruby objects:
