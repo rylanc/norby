@@ -118,10 +118,6 @@ describe('passing arguments', function() {
 describe('ruby constructor', function() {
   ruby.require('./test/test.rb');
   var ClassTester = ruby.getClass('ClassTester');
-  
-  // TODO: Create test for:
-  // var Time = ruby.getClass('Time');
-  // var t = new Time(2001, 2, 3);
     
   it('should pass v8 arguments', function() {
     var tester = new ClassTester('hello');
@@ -134,5 +130,14 @@ describe('ruby constructor', function() {
     
     fn = function() { return new ClassTester(1, 2); };
     expect(fn).to.throw(Error);
+  });
+  
+  it('should handle core ruby classes', function() {
+    var Time = ruby.getClass('Time');
+    var t = new Time(2001, 2, 3);
+    
+    expect(t.year()).to.equal(2001);
+    expect(t.month()).to.equal(2);
+    expect(t.mday()).to.equal(3);
   });
 });
