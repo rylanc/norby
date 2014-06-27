@@ -37,6 +37,41 @@ describe('return', function() {
       expect(result).to.be.a('number');
       expect(result).to.equal(49895);
     });
+    
+    it('should handle positive values up to 2^53', function() {
+      var t = new Returner();
+      
+      var result = t.ret_max_int32()
+      expect(result).to.be.a('number');
+      expect(result).to.equal(2147483647);
+      
+      result = t.ret_max_precise_double();
+      expect(result).to.be.a('number');
+      expect(result).to.equal(9007199254740992);
+    });
+    
+    it('should handle negative values down to -2^53', function() {
+      var t = new Returner();
+      
+      var result = t.ret_min_int32()
+      expect(result).to.be.a('number');
+      expect(result).to.equal(-2147483648);
+      
+      result = t.ret_min_precise_double();
+      expect(result).to.be.a('number');
+      expect(result).to.equal(-9007199254740992);
+    });
+  });
+  
+  describe('bignum', function() {
+    // Even though we lose precision due to conversion to floating point,
+    // Bignums should still convert
+    it('should return 5234567890987654000', function() {
+      var t = new Returner();
+      var result = t.ret_bignum();
+      expect(result).to.be.a('number');
+      expect(result).to.equal(5234567890987654321);
+    });
   });
   
   describe('true', function() {

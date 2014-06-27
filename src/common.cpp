@@ -2,15 +2,21 @@
 #include <node.h>
 #include <cassert>
 #include <vector>
+#include <limits>
 
 #include <iostream>
 using namespace std;
 
 using namespace v8;
 
+const int32_t MIN_INT32 = std::numeric_limits<int32_t>::min();
+const int32_t MAX_INT32 = std::numeric_limits<int32_t>::max();
+
 Handle<Value> rubyToV8(VALUE val)
 {
   HandleScope scope;
+
+  log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8" << endl);
 
   int type = TYPE(val);
   switch (type) {
@@ -30,8 +36,16 @@ Handle<Value> rubyToV8(VALUE val)
 
     return scope.Close(array);
   }
-  case T_FIXNUM:
-    return scope.Close(Integer::New(NUM2INT(val)));
+  case T_FIXNUM: {
+    long longVal = FIX2LONG(val);
+    if (longVal >= MIN_INT32 && longVal <= MAX_INT32) {
+      return scope.Close(Integer::New(longVal));
+    }
+    else
+      return scope.Close(Number::New(longVal));
+  }
+  case T_BIGNUM:
+    return scope.Close(Number::New(rb_num2long(val)));
   case T_TRUE:
     return scope.Close(True());
   case T_FALSE:
@@ -135,7 +149,7 @@ VALUE CallV8FromRuby(const Handle<Object> recv,
 
 void DumpRubyArgs(int argc, VALUE* argv)
 {
-#ifndef NDEBUG
+#ifdef _DEBUG
   for (int i = 0; i < argc; i++) {
     VALUE str = rb_funcall2(argv[i], rb_intern("to_s"), 0, NULL);
     cout << i << ": " << StringValueCStr(str) << endl;
@@ -145,7 +159,7 @@ void DumpRubyArgs(int argc, VALUE* argv)
 
 void DumpV8Props(Handle<Object> obj)
 {
-#ifndef NDEBUG
+#ifdef _DEBUG
   HandleScope scope;
   
   Local<Array> propNames = obj->GetPropertyNames();
@@ -159,7 +173,7 @@ void DumpV8Props(Handle<Object> obj)
 
 void DumpV8Args(const Arguments& args)
 {
-#ifndef NDEBUG
+#ifdef _DEBUG
   HandleScope scope;
   
   for (int i = 0; i < args.Length(); i++) {

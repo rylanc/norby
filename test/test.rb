@@ -10,6 +10,21 @@ class Returner
   def ret_fixnum
     return 49895
   end
+  def ret_max_int32
+    return 2147483647
+  end
+  def ret_max_precise_double
+    return 1 << 53
+  end
+  def ret_min_int32
+    return -2147483648
+  end
+  def ret_min_precise_double
+    return -(1 << 53)
+  end
+  def ret_bignum
+    5234567890987654321
+  end
   def ret_true
     return true
   end
