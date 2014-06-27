@@ -71,7 +71,6 @@ struct NewInstanceCaller2
     VALUE obj = Data_Wrap_Struct(klass, NULL, NULL, data);
     rb_obj_call_init(obj, rubyArgs.size(), &rubyArgs[0]);
     return obj;
-    //return rb_class_new_instance(rubyArgs.size(), &rubyArgs[0], klass);
   }
 
   std::vector<VALUE>& rubyArgs;
@@ -86,21 +85,27 @@ Handle<Value> RubyObject::New(const Arguments& args)
   if (args.IsConstructCall()) {
     VALUE klass = VALUE(External::Unwrap(args.Data()));
     
-    std::vector<VALUE> rubyArgs(args.Length());
-    for (int i = 0; i < args.Length(); i++) {
-      rubyArgs[i] = v8ToRuby(args[i]);
+    // TODO: This has serious GC implications. Make weak? When can we delete the ptr?
+    Persistent<Object>* owner;
+    if (!args[0]->IsUndefined())
+      owner = new Persistent<Object>(Persistent<Object>::New(args[0].As<Object>()));
+    //DumpV8Props(*owner);
+    //cout << "Owner: " << *String::Utf8Value(args[0]) << endl;
+    
+    Local<Array> v8Args = args[1].As<Array>();
+    std::vector<VALUE> rubyArgs(v8Args->Length());
+    for (uint32_t i = 0; i < v8Args->Length(); i++) {
+      rubyArgs[i] = v8ToRuby(v8Args->Get(i));
     }
     
     log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl);
     
-    // TODO: Can/should we use Holder here?
-    //Persistent<Object>* owner = new Persistent<Object>(Persistent<Object>::New(args[0].As<Object>()));
-    //DumpV8Props(*owner);
-    //cout << "Owner: " << *String::Utf8Value(args[0]) << endl;
-    
     VALUE ex;
-    VALUE obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
-    //VALUE obj = SafeRubyCall(NewInstanceCaller2(rubyArgs, klass, owner), ex);
+    VALUE obj;
+    if (args[0]->IsUndefined())
+      obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
+    else
+      obj = SafeRubyCall(NewInstanceCaller2(rubyArgs, klass, owner), ex);
     if (ex != Qnil) {
       ThrowException(rubyExToV8(ex));
       return scope.Close(Undefined());
@@ -177,18 +182,10 @@ struct MethodCaller
 
   static VALUE BlockFunc(VALUE, VALUE data, int argc, const VALUE* rbArgv)
   {
-    HandleScope scope;
-    
-    std::vector<Handle<Value> > v8Args(argc);
-    for (int i = 0; i < argc; i++) {
-      v8Args[i] = rubyToV8(rbArgv[i]);
-    }
-
     MethodCaller* self = reinterpret_cast<MethodCaller*>(data);
-    Handle<Value> ret = node::MakeCallback(Context::GetCurrent()->Global(),
-                                           self->block, argc, &v8Args[0]);
-
-    return v8ToRuby(ret);
+    
+    return CallV8FromRuby(Context::GetCurrent()->Global(), self->block,
+                          argc, rbArgv);
   }
 
   VALUE obj;

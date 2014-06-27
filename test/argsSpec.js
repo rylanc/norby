@@ -118,6 +118,10 @@ describe('passing arguments', function() {
 describe('ruby constructor', function() {
   ruby.require('./test/test.rb');
   var ClassTester = ruby.getClass('ClassTester');
+  
+  // TODO: Create test for:
+  // var Time = ruby.getClass('Time');
+  // var t = new Time(2001, 2, 3);
     
   it('should pass v8 arguments', function() {
     var tester = new ClassTester('hello');

@@ -1,5 +1,7 @@
 #include "common.h"
+#include <node.h>
 #include <cassert>
+#include <vector>
 
 #include <iostream>
 using namespace std;
@@ -113,6 +115,22 @@ VALUE RescueCB(VALUE data, VALUE ex)
   return Qnil;
 }
 
+VALUE CallV8FromRuby(const Handle<Object> recv,
+                     const Handle<Function> callback,
+                     int argc, const VALUE* argv)
+{
+  HandleScope scope;
+  
+  std::vector<Handle<Value> > v8Args(argc);
+  for (int i = 0; i < argc; i++) {
+    v8Args[i] = rubyToV8(argv[i]);
+  }
+  
+  Handle<Value> ret = node::MakeCallback(recv, callback, argc, &v8Args[0]);
+  
+  return v8ToRuby(ret);
+}
+
 void DumpRubyArgs(int argc, VALUE* argv)
 {
 #ifndef NDEBUG
@@ -133,6 +151,17 @@ void DumpV8Props(Handle<Object> obj)
     Local<Value> key = propNames->Get(i);
     
     cout << *String::Utf8Value(key) << endl;
+  }
+#endif
+}
+
+void DumpV8Args(const Arguments& args)
+{
+#ifndef NDEBUG
+  HandleScope scope;
+  
+  for (int i = 0; i < args.Length(); i++) {
+    cout << i << ": " << *String::Utf8Value(args[i]) << endl;
   }
 #endif
 }

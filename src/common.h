@@ -1,6 +1,7 @@
 #include <v8.h>
 #include <ruby.h>
 
+// TODO: This doesn't always work...
 #ifndef NDEBUG
 #define log(x) cout << x
 #else
@@ -32,6 +33,11 @@ inline VALUE SafeRubyCall(const F& f, VALUE &ex)
                     RUBY_METHOD_FUNC(RescueCB), VALUE(&ex), rb_eException, NULL);
 }
 
+VALUE CallV8FromRuby(const v8::Handle<v8::Object> recv,
+                     const v8::Handle<v8::Function> callback,
+                     int argc, const VALUE* argv);
+
 // For debugging
 void DumpRubyArgs(int argc, VALUE* argv);
 void DumpV8Props(v8::Handle<v8::Object> obj);
+void DumpV8Args(const v8::Arguments& args);

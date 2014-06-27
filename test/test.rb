@@ -85,6 +85,26 @@ end
 
 class InheritTester
   def make_call
-    call_derived
+    return call_derived
+  end
+  def make_call_with_args(arg1, arg2)
+    return call_derived_with_args(arg1, arg2)
+  end
+end
+
+class ArgsInheritTester
+  def initialize(arg1, arg2, arg3)
+    @arg1 = arg1
+    @arg2 = arg2
+    @arg3 = arg3
+  end
+  def get_arg1
+    @arg1
+  end
+  def get_arg2
+    @arg2
+  end
+  def get_arg3
+    @arg3
   end
 end

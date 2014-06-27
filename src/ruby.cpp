@@ -80,10 +80,7 @@ VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
   Local<Value> prop = (*owner)->Get(v8Name);
   log(RSTRING_PTR(rbName) << " is: " << *String::Utf8Value(prop) << endl);
   if (prop->IsFunction()) {
-    Handle<Value> v8Args[] = {};
-    // TODO: Convert args and ret val
-    node::MakeCallback(*owner, prop.As<Function>(), 0, v8Args);
-    return Qnil;
+    return CallV8FromRuby(*owner, prop.As<Function>(), argc-1, argv+1);
   }
   else
     return rb_call_super(argc, argv);
@@ -148,7 +145,7 @@ void Init(Handle<Object> exports) {
 
   node::AtExit(CleanupRuby);
                
-  exports->Set(String::NewSymbol("getClass"),
+  exports->Set(String::NewSymbol("_getClass"),
                FunctionTemplate::New(GetClass)->GetFunction());
 
   exports->Set(String::NewSymbol("gcStart"),

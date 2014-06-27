@@ -18,7 +18,4 @@ class RubyObject : public node::ObjectWrap
   VALUE m_obj;
   typedef std::map<ID, v8::Persistent<v8::FunctionTemplate> > TplMap;
   static TplMap s_functionTemplates;
-  
-  // TODO: Is this right? At least make weak
-  //v8::Persistent<v8::Object>* m_owner;
 };
