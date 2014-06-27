@@ -86,7 +86,7 @@ VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
     return rb_call_super(argc, argv);
 }
 
-Handle<Value> Inherits(const Arguments& args)
+Handle<Value> DefineClass(const Arguments& args)
 {
   HandleScope scope;
 
@@ -106,6 +106,31 @@ Handle<Value> Inherits(const Arguments& args)
   rb_define_method(klass, "method_missing", RUBY_METHOD_FUNC(MethodMissing), -1);
   
   return scope.Close(ctor);
+}
+
+struct EvalCaller
+{
+  EvalCaller(const char* s) : str(s) {}
+  VALUE operator()() const
+  {
+    return rb_eval_string(str);
+  }
+
+  const char* str;
+};
+
+Handle<Value> Eval(const Arguments& args)
+{
+  HandleScope scope;
+
+  Local<String> str = args[0]->ToString();
+  VALUE ex;
+  VALUE res = SafeRubyCall(EvalCaller(*String::Utf8Value(str)), ex);
+  if (ex != Qnil) {
+    return scope.Close(ThrowException(rubyExToV8(ex)));
+  }
+
+  return scope.Close(rubyToV8(res));
 }
 
 Handle<Value> GCStart(const Arguments& args)
@@ -139,12 +164,15 @@ void Init(Handle<Object> exports) {
 
   exports->Set(String::NewSymbol("_gcStart"),
                FunctionTemplate::New(GCStart)->GetFunction());
+               
+  exports->Set(String::NewSymbol("_defineClass"),
+               FunctionTemplate::New(DefineClass)->GetFunction());
 
   exports->Set(String::NewSymbol("require"),
                FunctionTemplate::New(Require)->GetFunction());
-
-  exports->Set(String::NewSymbol("_defineClass"),
-               FunctionTemplate::New(Inherits)->GetFunction());
+               
+  exports->Set(String::NewSymbol("eval"),
+               FunctionTemplate::New(Eval)->GetFunction());
 }
 
 NODE_MODULE(ruby_bridge, Init)

@@ -51,3 +51,16 @@ describe('.newInstance', function() {
     expect(tester.get_val()).to.equal('hello');
   });
 });
+
+describe('.eval', function() {
+  it('should properly evaluate given ruby strings', function() {
+    var result = ruby.eval('b = "hello" \n b');
+    expect(result).to.be.a('string');
+    expect(result).to.equal('hello');
+  });
+  
+  it('should throw a SyntaxError given invalid syntax', function() {
+    var fn = function() { ruby.eval('end'); };
+    expect(fn).to.throw(SyntaxError);
+  });
+});
