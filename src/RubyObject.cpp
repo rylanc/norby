@@ -46,6 +46,17 @@ Local<Function> RubyObject::GetClass(VALUE klass)
   return scope.Close(ctor);
 }
 
+void OwnerWeakCB(Persistent<Value> value, void *data)
+{
+  assert(value.IsNearDeath());
+  value.ClearWeak();
+  value.Dispose();
+  value.Clear();
+  
+  Persistent<Object>* owner = static_cast<Persistent<Object>*>(data);
+  delete owner;
+}
+
 struct NewInstanceCaller
 {
   NewInstanceCaller(std::vector<VALUE> &r, VALUE k, void* d) :
@@ -74,11 +85,14 @@ Handle<Value> RubyObject::New(const Arguments& args)
   
   if (args.IsConstructCall()) {
     VALUE klass = VALUE(External::Unwrap(args.Data()));
-    
-    // TODO: This has serious GC implications. Make weak? When can we delete the ptr?
+
     Persistent<Object>* owner = NULL;
-    if (!args[0]->IsUndefined())
+    if (!args[0]->IsUndefined()) {
       owner = new Persistent<Object>(Persistent<Object>::New(args[0].As<Object>()));
+      owner->MakeWeak(owner, OwnerWeakCB);
+      // TODO: Keep this?
+      owner->MarkIndependent();
+    }
     
     Local<Array> v8Args = args[1].As<Array>();
     std::vector<VALUE> rubyArgs(v8Args->Length());
