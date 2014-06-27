@@ -90,8 +90,7 @@ Handle<Value> Inherits(const Arguments& args)
 {
   HandleScope scope;
 
-  Local<Function> cons = args[0].As<Function>();
-  Local<String> name = cons->GetName()->ToString();
+  Local<String> name = args[0]->ToString();
   log("Inherit called for " << *String::Utf8Value(name) << endl);
 
   VALUE ex;
@@ -117,16 +116,6 @@ Handle<Value> GCStart(const Arguments& args)
   return scope.Close(Undefined());
 }
 
-Handle<Value> TestExternal(const Arguments& args)
-{
-  HandleScope scope;
-  
-  ID id = rb_intern("String");
-  VALUE klass = rb_const_get(rb_cObject, id);
-  
-  return scope.Close(External::Wrap((void*)klass));
-}
-
 void CleanupRuby(void*)
 {
   log("Cleaning up!" << endl);
@@ -148,17 +137,14 @@ void Init(Handle<Object> exports) {
   exports->Set(String::NewSymbol("_getClass"),
                FunctionTemplate::New(GetClass)->GetFunction());
 
-  exports->Set(String::NewSymbol("gcStart"),
+  exports->Set(String::NewSymbol("_gcStart"),
                FunctionTemplate::New(GCStart)->GetFunction());
 
   exports->Set(String::NewSymbol("require"),
                FunctionTemplate::New(Require)->GetFunction());
 
-  exports->Set(String::NewSymbol("_rubyInherits"),
+  exports->Set(String::NewSymbol("_defineClass"),
                FunctionTemplate::New(Inherits)->GetFunction());
-               
-  exports->Set(String::NewSymbol("testExternal"),
-               FunctionTemplate::New(TestExternal)->GetFunction());
 }
 
 NODE_MODULE(ruby_bridge, Init)

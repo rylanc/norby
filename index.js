@@ -30,7 +30,7 @@ var getClass = module.exports.getClass = function(name) {
 };
 
 module.exports.inherits = function(ctor, superName) {
-  var RubyClass = bindings._rubyInherits(ctor, superName);
+  var RubyClass = bindings._defineClass(ctor.name, superName);
   function SuperCtor() {
     this._rubyObj = new RubyClass(this, arguments);
   }
