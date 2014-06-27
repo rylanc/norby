@@ -1,4 +1,5 @@
 #include "common.h"
+#include "RubyObject.h"
 #include <node.h>
 #include <cassert>
 #include <vector>
@@ -90,12 +91,25 @@ VALUE v8ToRuby(Handle<Value> val)
     return UINT2NUM(val->Uint32Value());
   else if (val->IsNumber())
     return rb_float_new(val->NumberValue());
-  else {
-    // TODO: Should we wrap objects here?
-    String::Utf8Value str(val->ToDetailString());
-    cerr << "Unknown v8 type: " << *str << endl;
-    return Qnil;
+  else if (val->IsObject()) {
+    // TODO: Is this the best way to do this? Should we add the hidden prop to
+    // the owner object?
+    Local<Value> wrappedVal = val.As<Object>()->Get(String::New("_rubyObj"));
+    if (wrappedVal->IsObject()) {
+      Local<Object> wrappedObj = wrappedVal.As<Object>();
+      Local<Value> hidden =
+        wrappedObj->GetHiddenValue(String::New(RubyObject::RUBY_OBJECT_TAG));
+      if (!hidden.IsEmpty() && hidden->IsTrue()) {
+        RubyObject* rubyObj = node::ObjectWrap::Unwrap<RubyObject>(wrappedObj);
+        return rubyObj->GetObject();
+      }
+    }
   }
+  
+  // TODO: Should we wrap objects here?
+  String::Utf8Value str(val->ToDetailString());
+  cerr << "Unknown v8 type: " << *str << endl;
+  return Qnil;
 }
 
 Handle<Value> rubyExToV8(VALUE ex)

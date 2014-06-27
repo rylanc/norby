@@ -113,6 +113,27 @@ describe('passing arguments', function() {
       expect(a.check_number(val)).to.be.true;
     });
   });
+  
+  describe('ruby object', function() {
+    it('should pass existing ruby objects', function() {
+      var a = new ArgsInspector();
+      var val = ruby.newInstance('Time', 2001, 2, 3);
+      
+      expect(a.get_type(val)).to.equal('Time');
+      expect(a.check_time(val)).to.be.true;
+    });
+    
+    it('shouldn\'t try to unwrap non-ruby objects', function() {
+      var a = new ArgsInspector();
+      var val = {
+        _rubyObj: {
+          _IsRubyObject: true
+        }
+      };
+      
+      expect(a.get_type(val)).to.equal('NilClass');
+    });
+  });
 });
 
 describe('ruby constructor', function() {

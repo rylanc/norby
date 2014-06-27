@@ -8,6 +8,8 @@ using namespace std;
 using namespace v8;
 
 VALUE trueArg = Qtrue;
+
+const char* RubyObject::RUBY_OBJECT_TAG = "_IsRubyObject";
 RubyObject::TplMap RubyObject::s_functionTemplates;
 
 Local<Function> RubyObject::GetClass(VALUE klass)
@@ -112,6 +114,8 @@ Handle<Value> RubyObject::New(const Arguments& args)
     // Wrap the obj immediately to prevent it from being garbage collected
     RubyObject *self = new RubyObject(obj);
     self->Wrap(args.This());
+    
+    args.This()->SetHiddenValue(String::New(RUBY_OBJECT_TAG), True());
     
     return scope.Close(args.This());
   }

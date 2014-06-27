@@ -6,7 +6,10 @@
 class RubyObject : public node::ObjectWrap
 {
  public:
+  static const char* RUBY_OBJECT_TAG;
+ 
   static v8::Local<v8::Function> GetClass(VALUE klass);
+  VALUE GetObject() { return m_obj; }
 
  private:
   RubyObject(VALUE obj);

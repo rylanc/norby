@@ -70,6 +70,9 @@ class ArgsInspector
   def check_number (arg)
     return arg == 4.359
   end
+  def check_time (arg)
+    return (arg.year == 2001 and arg.month == 2 and arg.mday == 3)
+  end
 end
 
 class ClassTester
