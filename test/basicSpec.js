@@ -11,6 +11,11 @@ describe('.require', function() {
     var fn = function() { ruby.require('./dfgfgnfghjnjhm.rb'); };
     expect(fn).to.throw(Error);
   });
+  
+  it('should throw a SyntaxError given invalid syntax', function() {
+    var fn = function() { ruby.require('./test/invalid.rb'); };
+    expect(fn).to.throw(SyntaxError);
+  });
 });
 
 describe('.getClass', function() {

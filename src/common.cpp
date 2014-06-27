@@ -92,7 +92,6 @@ Handle<Value> rubyExToV8(VALUE ex)
   VALUE msg = rb_funcall(ex, rb_intern("message"), 0);
   Local<String> msgStr = String::New(RSTRING_PTR(msg), RSTRING_LEN(msg));
 
-  // TODO: SyntaxError?
   VALUE klass = rb_class_of(ex);
   if (klass == rb_eArgError ||
       klass == rb_eLoadError)
@@ -101,6 +100,8 @@ Handle<Value> rubyExToV8(VALUE ex)
     return scope.Close(Exception::ReferenceError(msgStr));
   else if (klass == rb_eTypeError)
     return scope.Close(Exception::TypeError(msgStr));
+  else if (klass == rb_eSyntaxError)
+    return scope.Close(Exception::SyntaxError(msgStr));
   else {
     cerr << "Unknown ruby exception: " << rb_obj_classname(ex) << endl;
     return scope.Close(Exception::Error(msgStr));
