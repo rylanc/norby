@@ -7,11 +7,6 @@ using namespace std;
 
 using namespace v8;
 
-// TODO:
-// - Where do we need to rb_rescue?
-// - Modules?
-// - Class extending?
-
 VALUE trueArg = Qtrue;
 RubyObject::TplMap RubyObject::s_functionTemplates;
 
@@ -102,12 +97,13 @@ Handle<Value> RubyObject::New(const Arguments& args)
     
     // Wrap the obj immediately to prevent it from being garbage collected
     RubyObject *self = new RubyObject(obj);
-    //self->m_owner = owner;
     self->Wrap(args.This());
     
     return scope.Close(args.This());
   }
   else {
+    // TODO: Do we even need this?
+    
     std::vector<Handle<Value> > argv(args.Length());
     for (int i = 0; i < args.Length(); i++) {
       argv[i] = args[i];
@@ -116,8 +112,6 @@ Handle<Value> RubyObject::New(const Arguments& args)
     VALUE klass = VALUE(External::Unwrap(args.Data()));
     Local<Function> cons = RubyObject::GetClass(klass);
     
-    //Local<Value> argv[argc] = { args[0], args[1], args[2] };
-    //Local<Function> cons = args.Callee();
     return scope.Close(cons->NewInstance(args.Length(), &argv[0]));
   }
 }
@@ -190,8 +184,6 @@ Handle<Value> RubyObject::CallMethod(const Arguments& args)
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
   ID methodID = ID(External::Unwrap(args.Data()));
-  
-  //DumpV8Props(*self->m_owner);
 
   VALUE ex;
   VALUE res = SafeRubyCall(MethodCaller(self->m_obj, methodID, args), ex);

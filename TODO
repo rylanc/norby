@@ -8,3 +8,7 @@ Ruby objects:
  - convert JS objects to RB hashes? (vice versa)
  - convert common func names? (e.g. to_s -> toString)
  - protect inspect calls?
+ - modules?
+ - extending?
+ - do we need to rb_rescue anywhere else?
+ 

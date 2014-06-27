@@ -77,6 +77,7 @@ VALUE v8ToRuby(Handle<Value> val)
   else if (val->IsNumber())
     return rb_float_new(val->NumberValue());
   else {
+    // TODO: Should we wrap objects here?
     String::Utf8Value str(val->ToDetailString());
     cerr << "Unknown v8 type: " << *str << endl;
     return Qnil;
