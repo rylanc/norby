@@ -1,8 +1,10 @@
 #include <v8.h>
 #include <ruby.h>
 
+#include <vector>
+
 #ifdef _DEBUG
-#define log(x) cout << x
+#define log(x) std::cout << x
 #else
 #define log(x)
 #endif
@@ -13,14 +15,14 @@ v8::Handle<v8::Value> rubyExToV8(VALUE ex);
 
 VALUE RescueCB(VALUE data, VALUE ex);
 
-template<class T>
+template<class F>
 struct SafeCallWrapper
 {
   static VALUE Func(VALUE data)
   {
-    const T* t = reinterpret_cast<T*>(data);
+    const F* f = reinterpret_cast<F*>(data);
 
-    return (*t)();
+    return (*f)();
   }
 };
 
@@ -35,6 +37,7 @@ inline VALUE SafeRubyCall(const F& f, VALUE &ex)
 VALUE CallV8FromRuby(const v8::Handle<v8::Object> recv,
                      const v8::Handle<v8::Function> callback,
                      int argc, const VALUE* argv);
+v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, const v8::Arguments& args);
 
 // For debugging
 void DumpRubyArgs(int argc, VALUE* argv);

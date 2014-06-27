@@ -47,3 +47,4 @@ module.exports.inherits = function(ctor, superName) {
 
 module.exports.require = bindings.require;
 module.exports.eval = bindings.eval;
+module.exports.getFunction = bindings.getFunction;

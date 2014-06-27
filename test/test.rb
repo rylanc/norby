@@ -126,3 +126,7 @@ class ArgsInheritTester
     @arg3
   end
 end
+
+def non_class_function (arg1, arg2, arg3)
+  return arg1 + arg2 + arg3
+end

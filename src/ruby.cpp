@@ -133,6 +133,27 @@ Handle<Value> Eval(const Arguments& args)
   return scope.Close(rubyToV8(res));
 }
 
+// TODO: Can this be combined with RubyObject::CallMethod? Maybe rename?
+Handle<Value> CallMethod(const Arguments& args)
+{
+  HandleScope scope;
+  return scope.Close(CallRubyFromV8(rb_cObject, args));
+}
+
+// TODO: Should this throw immediately if the function doesnt exist?
+Handle<Value> GetFunction(const Arguments& args)
+{
+  HandleScope scope;
+
+  Local<String> name = args[0]->ToString();
+  ID methodID = rb_intern(*String::Utf8Value(name));
+  Local<Function> func =
+    FunctionTemplate::New(CallMethod, External::Wrap((void*)methodID))->GetFunction();
+  func->SetName(name);
+
+  return scope.Close(func);
+}
+
 Handle<Value> GCStart(const Arguments& args)
 {
   HandleScope scope;
@@ -173,6 +194,10 @@ void Init(Handle<Object> exports) {
                
   exports->Set(String::NewSymbol("eval"),
                FunctionTemplate::New(Eval)->GetFunction());
+  
+  // TODO: Right name?             
+  exports->Set(String::NewSymbol("getFunction"),
+               FunctionTemplate::New(GetFunction)->GetFunction());
 }
 
 NODE_MODULE(ruby_bridge, Init)

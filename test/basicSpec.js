@@ -64,3 +64,20 @@ describe('.eval', function() {
     expect(fn).to.throw(SyntaxError);
   });
 });
+
+describe('.getFunction', function() {
+  it('should return a function given a valid name', function() {
+    var non_class_function = ruby.getFunction('non_class_function');
+    expect(non_class_function).to.be.a('function');
+    
+    var result = non_class_function(4, 8, 23);
+    expect(result).to.be.a('number');
+    expect(result).to.equal(35);
+  });
+  
+  it('should throw an error given an invalid name', function() {
+    var doesntExist = ruby.getFunction('doesntExist');
+    var fn = function() { doesntExist(); };
+    expect(fn).to.throw(ReferenceError);
+  });
+});

@@ -145,69 +145,10 @@ RubyObject::~RubyObject()
   rb_gc_unregister_address(&m_obj);
 }
 
-struct MethodCaller
-{
-  MethodCaller(VALUE o, VALUE m, const Arguments& args) :
-    obj(o), methodID(m), rubyArgs(args.Length())
-  {
-    // TODO: Is this right? Is there a way to determine if a block is expected?
-    if (args.Length() > 0 && args[args.Length()-1]->IsFunction()) {
-      log("Got a func!" << endl);
-      block = args[args.Length()-1].As<Function>();
-      rubyArgs.resize(args.Length()-1);
-    }
-    
-    for (size_t i = 0; i < rubyArgs.size(); i++) {
-      rubyArgs[i] = v8ToRuby(args[i]);
-    }
-  }
-
-  VALUE operator()() const
-  {
-    log("Calling method: " << rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
-      
-    if (block.IsEmpty()) {
-      log(endl);
-      
-      return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
-    }
-    else {
-      log(" and a block" << endl);
-      
-      // TODO: Probably not available in Ruby < 1.9
-      return rb_block_call(obj, methodID, rubyArgs.size(),
-                           (VALUE*)&rubyArgs[0], RUBY_METHOD_FUNC(BlockFunc),
-                           (VALUE)this);
-    }
-  }
-
-  static VALUE BlockFunc(VALUE, VALUE data, int argc, const VALUE* rbArgv)
-  {
-    MethodCaller* self = reinterpret_cast<MethodCaller*>(data);
-    
-    return CallV8FromRuby(Context::GetCurrent()->Global(), self->block,
-                          argc, rbArgv);
-  }
-
-  VALUE obj;
-  VALUE methodID;
-  std::vector<VALUE> rubyArgs;
-  // TODO: Should this be persistent?
-  Local<Function> block;
-};
-
 Handle<Value> RubyObject::CallMethod(const Arguments& args)
 {
   HandleScope scope;
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
-  ID methodID = ID(External::Unwrap(args.Data()));
-
-  VALUE ex;
-  VALUE res = SafeRubyCall(MethodCaller(self->m_obj, methodID, args), ex);
-  if (ex != Qnil) {
-    return scope.Close(ThrowException(rubyExToV8(ex)));
-  }
-
-  return scope.Close(rubyToV8(res));
+  return scope.Close(CallRubyFromV8(self->m_obj, args));
 }
