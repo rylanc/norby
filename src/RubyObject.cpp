@@ -10,7 +10,7 @@ using namespace v8;
 // TODO:
 // - Where do we need to rb_rescue?
 // - Modules?
-// - Class inheritance/extending?
+// - Class extending?
 
 VALUE trueArg = Qtrue;
 RubyObject::TplMap RubyObject::s_functionTemplates;
@@ -53,24 +53,19 @@ Local<Function> RubyObject::GetClass(VALUE klass)
 
 struct NewInstanceCaller
 {
-  NewInstanceCaller(std::vector<VALUE> &r, VALUE k) : rubyArgs(r), klass(k) {}
+  NewInstanceCaller(std::vector<VALUE> &r, VALUE k, void* d) :
+    rubyArgs(r), klass(k), data(d) {}
+
   VALUE operator()() const
   {
-    return rb_class_new_instance(rubyArgs.size(), &rubyArgs[0], klass);
-  }
-
-  std::vector<VALUE>& rubyArgs;
-  VALUE klass;
-};
-
-struct NewInstanceCaller2
-{
-  NewInstanceCaller2(std::vector<VALUE> &r, VALUE k, void* d) : rubyArgs(r), klass(k), data(d) {}
-  VALUE operator()() const
-  {
-    VALUE obj = Data_Wrap_Struct(klass, NULL, NULL, data);
-    rb_obj_call_init(obj, rubyArgs.size(), &rubyArgs[0]);
-    return obj;
+    if (data == NULL) {
+      return rb_class_new_instance(rubyArgs.size(), &rubyArgs[0], klass);
+    }
+    else {
+      VALUE obj = Data_Wrap_Struct(klass, NULL, NULL, data);
+      rb_obj_call_init(obj, rubyArgs.size(), &rubyArgs[0]);
+      return obj;
+    }
   }
 
   std::vector<VALUE>& rubyArgs;
@@ -86,11 +81,9 @@ Handle<Value> RubyObject::New(const Arguments& args)
     VALUE klass = VALUE(External::Unwrap(args.Data()));
     
     // TODO: This has serious GC implications. Make weak? When can we delete the ptr?
-    Persistent<Object>* owner;
+    Persistent<Object>* owner = NULL;
     if (!args[0]->IsUndefined())
       owner = new Persistent<Object>(Persistent<Object>::New(args[0].As<Object>()));
-    //DumpV8Props(*owner);
-    //cout << "Owner: " << *String::Utf8Value(args[0]) << endl;
     
     Local<Array> v8Args = args[1].As<Array>();
     std::vector<VALUE> rubyArgs(v8Args->Length());
@@ -101,11 +94,7 @@ Handle<Value> RubyObject::New(const Arguments& args)
     log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl);
     
     VALUE ex;
-    VALUE obj;
-    if (args[0]->IsUndefined())
-      obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
-    else
-      obj = SafeRubyCall(NewInstanceCaller2(rubyArgs, klass, owner), ex);
+    VALUE obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass, owner), ex);
     if (ex != Qnil) {
       ThrowException(rubyExToV8(ex));
       return scope.Close(Undefined());
