@@ -1,8 +1,7 @@
 #include <v8.h>
 #include <ruby.h>
 
-// TODO: This doesn't always work...
-#ifndef NDEBUG
+#ifdef _DEBUG
 #define log(x) cout << x
 #else
 #define log(x)
