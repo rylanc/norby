@@ -15,7 +15,7 @@ const int32_t MAX_INT32 = std::numeric_limits<int32_t>::max();
 
 Handle<Value> rubyToV8(VALUE val)
 {
-  HandleScope scope;
+  NanEscapableScope();
 
   log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8" << endl);
 
@@ -23,43 +23,43 @@ Handle<Value> rubyToV8(VALUE val)
   switch (type) {
   case T_NONE:
   case T_NIL: // TODO: Is this right?
-    return Undefined();
+     return NanEscapeScope(NanUndefined());
   case T_FLOAT:
-    return scope.Close(Number::New(RFLOAT_VALUE(val)));
+     return NanEscapeScope(NanNew<Number>(RFLOAT_VALUE(val)));
   case T_STRING:
-    return scope.Close(String::New(RSTRING_PTR(val), RSTRING_LEN(val)));
+     return NanEscapeScope(NanNew<String>(RSTRING_PTR(val), RSTRING_LEN(val)));
   case T_ARRAY: {
     int len = RARRAY_LEN(val);
-    Local<Array> array = Array::New(len);
+    Local<Array> array = NanNew<Array>(len);
     for (int i = 0; i < len; i++) {
       array->Set(i, rubyToV8(rb_ary_entry(val, i)));
-   }
+    }
 
-    return scope.Close(array);
+    return NanEscapeScope(array);
   }
   case T_FIXNUM: {
     long longVal = FIX2LONG(val);
     if (longVal >= MIN_INT32 && longVal <= MAX_INT32) {
-      return scope.Close(Integer::New(longVal));
+      return NanEscapeScope(NanNew<Integer>(longVal));
     }
     else
-      return scope.Close(Number::New(longVal));
+      return NanEscapeScope(NanNew<Number>(longVal));
   }
   case T_BIGNUM:
-    return scope.Close(Number::New(rb_num2long(val)));
+    return NanEscapeScope(NanNew<Number>(rb_num2long(val)));
   case T_TRUE:
-    return scope.Close(True());
+    return NanEscapeScope(NanTrue());
   case T_FALSE:
-    return scope.Close(False());
+    return NanEscapeScope(NanFalse());
   default:
     cerr << "Unknown ruby type: " << rb_obj_classname(val) << endl;
-    return Undefined();
+    return NanEscapeScope(NanUndefined());
   }
 }
 
 VALUE v8ToRuby(Handle<Value> val)
 {
-  HandleScope scope;
+  NanScope();
 
   log("Converting " << *String::Utf8Value(val->ToDetailString()) << " to ruby" << endl);
 
@@ -94,11 +94,11 @@ VALUE v8ToRuby(Handle<Value> val)
   else if (val->IsObject()) {
     // TODO: Is this the best way to do this? Should we add the hidden prop to
     // the owner object?
-    Local<Value> wrappedVal = val.As<Object>()->Get(String::New("_rubyObj"));
+    Local<Value> wrappedVal = val.As<Object>()->Get(NanNew<String>("_rubyObj"));
     if (wrappedVal->IsObject()) {
       Local<Object> wrappedObj = wrappedVal.As<Object>();
       Local<Value> hidden =
-        wrappedObj->GetHiddenValue(String::New(RubyObject::RUBY_OBJECT_TAG));
+        wrappedObj->GetHiddenValue(NanNew<String>(RubyObject::RUBY_OBJECT_TAG));
       if (!hidden.IsEmpty() && hidden->IsTrue()) {
         RubyObject* rubyObj = node::ObjectWrap::Unwrap<RubyObject>(wrappedObj);
         return rubyObj->GetObject();
@@ -114,27 +114,28 @@ VALUE v8ToRuby(Handle<Value> val)
 
 Handle<Value> rubyExToV8(VALUE ex)
 {
-  HandleScope scope;
+  NanEscapableScope();
 
   assert(rb_obj_is_kind_of(ex, rb_eException) == Qtrue);
 
   VALUE msg = rb_funcall(ex, rb_intern("message"), 0);
-  Local<String> msgStr = String::New(RSTRING_PTR(msg), RSTRING_LEN(msg));
+  Local<String> msgStr = NanNew<String>(RSTRING_PTR(msg), RSTRING_LEN(msg));
 
+  // TODO: Do these error constructions work in all node versions?
   VALUE klass = rb_class_of(ex);
   if (klass == rb_eArgError ||
       klass == rb_eLoadError)
-    return scope.Close(Exception::Error(msgStr));
+    return NanEscapeScope(Exception::Error(msgStr));
   else if (klass == rb_eNameError ||
            klass == rb_eNoMethodError)
-    return scope.Close(Exception::ReferenceError(msgStr));
+    return NanEscapeScope(Exception::ReferenceError(msgStr));
   else if (klass == rb_eTypeError)
-    return scope.Close(Exception::TypeError(msgStr));
+    return NanEscapeScope(Exception::TypeError(msgStr));
   else if (klass == rb_eSyntaxError)
-    return scope.Close(Exception::SyntaxError(msgStr));
+    return NanEscapeScope(Exception::SyntaxError(msgStr));
   else {
     cerr << "Unknown ruby exception: " << rb_obj_classname(ex) << endl;
-    return scope.Close(Exception::Error(msgStr));
+    return NanEscapeScope(Exception::Error(msgStr));
   }
 }
 
@@ -150,14 +151,14 @@ VALUE CallV8FromRuby(const Handle<Object> recv,
                      const Handle<Function> callback,
                      int argc, const VALUE* argv)
 {
-  HandleScope scope;
+  NanScope();
   
   std::vector<Handle<Value> > v8Args(argc);
   for (int i = 0; i < argc; i++) {
     v8Args[i] = rubyToV8(argv[i]);
   }
   
-  Handle<Value> ret = node::MakeCallback(recv, callback, argc, &v8Args[0]);
+  Handle<Value> ret = NanMakeCallback(recv, callback, argc, &v8Args[0]);
   
   return v8ToRuby(ret);
 }
@@ -165,8 +166,8 @@ VALUE CallV8FromRuby(const Handle<Object> recv,
 struct MethodCaller
 {
   inline
-  MethodCaller(VALUE o, const Arguments& args):
-    obj(o), methodID(ID(External::Unwrap(args.Data()))), rubyArgs(args.Length())
+  MethodCaller(VALUE o, _NAN_METHOD_ARGS_TYPE args):
+    obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))), rubyArgs(args.Length())
   {
     // TODO: Is this right? Is there a way to determine if a block is expected?
     if (args.Length() > 0 && args[args.Length()-1]->IsFunction()) {
@@ -201,7 +202,7 @@ struct MethodCaller
   {
     MethodCaller* self = reinterpret_cast<MethodCaller*>(data);
   
-    return CallV8FromRuby(Context::GetCurrent()->Global(), self->block,
+    return CallV8FromRuby(NanGetCurrentContext()->Global(), self->block,
                           argc, rbArgv);
   }
 
@@ -212,17 +213,18 @@ struct MethodCaller
   Local<Function> block;
 };
 
-Handle<Value> CallRubyFromV8(VALUE recv, const Arguments& args)
+Handle<Value> CallRubyFromV8(VALUE recv, _NAN_METHOD_ARGS_TYPE args)
 {
-  HandleScope scope;
+  NanEscapableScope();
 
   VALUE ex;
   VALUE res = SafeRubyCall(MethodCaller(recv, args), ex);
   if (ex != Qnil) {
-    return scope.Close(ThrowException(rubyExToV8(ex)));
+    NanThrowError(rubyExToV8(ex));
+    return NanEscapeScope(NanUndefined());
   }
 
-  return scope.Close(rubyToV8(res));
+  return NanEscapeScope(rubyToV8(res));
 }
 
 void DumpRubyArgs(int argc, VALUE* argv)
@@ -238,7 +240,7 @@ void DumpRubyArgs(int argc, VALUE* argv)
 void DumpV8Props(Handle<Object> obj)
 {
 #ifdef _DEBUG
-  HandleScope scope;
+  NanScope();
   
   Local<Array> propNames = obj->GetPropertyNames();
   for (uint32_t i = 0; i < propNames->Length(); i++) {
@@ -249,10 +251,10 @@ void DumpV8Props(Handle<Object> obj)
 #endif
 }
 
-void DumpV8Args(const Arguments& args)
+void DumpV8Args(_NAN_METHOD_ARGS_TYPE args)
 {
 #ifdef _DEBUG
-  HandleScope scope;
+  NanScope();
   
   for (int i = 0; i < args.Length(); i++) {
     cout << i << ": " << *String::Utf8Value(args[i]) << endl;

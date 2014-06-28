@@ -14,49 +14,48 @@ RubyObject::TplMap RubyObject::s_functionTemplates;
 
 Local<Function> RubyObject::GetClass(VALUE klass)
 {
-  HandleScope scope;
-  
-  Persistent<FunctionTemplate> persistTpl;
+  NanEscapableScope();
+
+  Local<FunctionTemplate> tpl;
   TplMap::iterator it = s_functionTemplates.find(klass);
   if (it == s_functionTemplates.end()) {
     log("Creating new class: " << rb_class2name(klass) << endl);
     
-    Local<FunctionTemplate> tpl = FunctionTemplate::New(New, External::Wrap((void*)klass));
-    tpl->SetClassName(String::NewSymbol(rb_class2name(klass)));
+    tpl = NanNew<FunctionTemplate>(New, EXTERNAL_WRAP((void*)klass));
+    tpl->SetClassName(NanNew<String>(rb_class2name(klass)));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
     VALUE methods = rb_class_public_instance_methods(1, &trueArg, klass);
     for (int i = 0; i < RARRAY_LEN(methods); i++) {
       ID methodID = SYM2ID(rb_ary_entry(methods, i));
-      Local<String> methodName = String::New(rb_id2name(methodID));
+      Local<String> methodName = NanNew<String>(rb_id2name(methodID));
 
       Local<FunctionTemplate> methodTemplate =
-        FunctionTemplate::New(CallMethod, External::Wrap((void*)methodID));
+        NanNew<FunctionTemplate>(CallMethod, EXTERNAL_WRAP((void*)methodID));
       tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
     }
 
-    persistTpl = s_functionTemplates[klass] = Persistent<FunctionTemplate>::New(tpl);
+    NanAssignPersistent(s_functionTemplates[klass], tpl);
+    //s_functionTemplates[klass].Reset(v8::Isolate::GetCurrent(), tpl);
   }
   else {
     log("Getting existing class: " << rb_class2name(klass) << endl);
     
-    persistTpl = it->second;
+    tpl = NanNew<FunctionTemplate>(it->second);
+    //tpl = Local<FunctionTemplate>::New(v8::Isolate::GetCurrent(), it->second);
   }
 
-  Local<Function> ctor = persistTpl->GetFunction();
-  
-  return scope.Close(ctor);
+  return NanEscapeScope(tpl->GetFunction());
 }
 
-void OwnerWeakCB(Persistent<Value> value, void *data)
+NAN_WEAK_CALLBACK(OwnerWeakCB)
 {
-  assert(value.IsNearDeath());
-  value.ClearWeak();
-  value.Dispose();
-  value.Clear();
+  // assert(value.IsNearDeath());
+  // value.ClearWeak();
+  // NanDisposePersistent(value);
   
-  Persistent<Object>* owner = static_cast<Persistent<Object>*>(data);
-  delete owner;
+  // Persistent<Object>* owner = static_cast<Persistent<Object>*>(data);
+  // delete owner;
 }
 
 struct NewInstanceCaller
@@ -81,17 +80,19 @@ struct NewInstanceCaller
   void* data;
 };
 
-Handle<Value> RubyObject::New(const Arguments& args)
+NAN_METHOD(RubyObject::New)
 {
-  HandleScope scope;
+  NanScope();
   
   if (args.IsConstructCall()) {
-    VALUE klass = VALUE(External::Unwrap(args.Data()));
+    VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
 
     Persistent<Object>* owner = NULL;
     if (!args[0]->IsUndefined()) {
-      owner = new Persistent<Object>(Persistent<Object>::New(args[0].As<Object>()));
-      owner->MakeWeak(owner, OwnerWeakCB);
+      //owner = new Persistent<Object>();
+      //NanAssignPersistent(*owner, args[0].As<Object>());
+      //owner->MakeWeak(owner, OwnerWeakCB);
+      owner = &NanMakeWeakPersistent(args[0].As<Object>(), (void*)NULL, OwnerWeakCB)->persistent;
       // TODO: Keep this?
       owner->MarkIndependent();
     }
@@ -107,17 +108,17 @@ Handle<Value> RubyObject::New(const Arguments& args)
     VALUE ex;
     VALUE obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass, owner), ex);
     if (ex != Qnil) {
-      ThrowException(rubyExToV8(ex));
-      return scope.Close(Undefined());
+      NanThrowError(rubyExToV8(ex));
+      NanReturnUndefined();
     }
     
     // Wrap the obj immediately to prevent it from being garbage collected
     RubyObject *self = new RubyObject(obj);
     self->Wrap(args.This());
     
-    args.This()->SetHiddenValue(String::New(RUBY_OBJECT_TAG), True());
+    args.This()->SetHiddenValue(NanNew<String>(RUBY_OBJECT_TAG), NanTrue());
     
-    return scope.Close(args.This());
+    NanReturnValue(args.This());
   }
   else {
     // TODO: Do we even need this?
@@ -127,10 +128,10 @@ Handle<Value> RubyObject::New(const Arguments& args)
       argv[i] = args[i];
     }
     
-    VALUE klass = VALUE(External::Unwrap(args.Data()));
+    VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
     Local<Function> cons = RubyObject::GetClass(klass);
     
-    return scope.Close(cons->NewInstance(args.Length(), &argv[0]));
+    NanReturnValue(cons->NewInstance(args.Length(), &argv[0]));
   }
 }
 
@@ -145,10 +146,10 @@ RubyObject::~RubyObject()
   rb_gc_unregister_address(&m_obj);
 }
 
-Handle<Value> RubyObject::CallMethod(const Arguments& args)
+NAN_METHOD(RubyObject::CallMethod)
 {
-  HandleScope scope;
+  NanScope();
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
-  return scope.Close(CallRubyFromV8(self->m_obj, args));
+  NanReturnValue(CallRubyFromV8(self->m_obj, args));
 }

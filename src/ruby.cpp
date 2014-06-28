@@ -1,6 +1,8 @@
 #include <node.h>
+#include <nan.h>
 #include <v8.h>
 #include <ruby.h>
+
 #include "RubyObject.h"
 #include "common.h"
 
@@ -14,7 +16,7 @@ struct ClassGetter
   ClassGetter(Handle<Value> nv) : nameVal(nv) {}
   VALUE operator()() const
   {
-    HandleScope scope;
+    NanScope();
 
     Local<String> className = nameVal->ToString();
     ID id = rb_intern(*String::Utf8Value(className));
@@ -25,16 +27,18 @@ struct ClassGetter
 };
 
 // TODO: Should/could we combine this with RubyObject::GetClass?
-Handle<Value> GetClass(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(GetClass)
+{
+  NanScope();
 
   VALUE ex;
   VALUE klass = SafeRubyCall(ClassGetter(args[0]), ex);
   if (ex != Qnil) {
-    return scope.Close(ThrowException(rubyExToV8(ex)));
+    NanThrowError(rubyExToV8(ex));
+    NanReturnUndefined();
   }
   
-  return scope.Close(RubyObject::GetClass(klass));
+  NanReturnValue(RubyObject::GetClass(klass));
 }
 
 struct RequireCaller
@@ -48,18 +52,19 @@ struct RequireCaller
   const char* name;
 };
 
-Handle<Value> Require(const Arguments& args)
+NAN_METHOD(Require)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<String> name = args[0]->ToString();
   VALUE ex;
   VALUE res = SafeRubyCall(RequireCaller(*String::Utf8Value(name)), ex);
   if (ex != Qnil) {
-    return scope.Close(ThrowException(rubyExToV8(ex)));
+    NanThrowError(rubyExToV8(ex));
+    NanReturnUndefined();
   }
 
-  return scope.Close(rubyToV8(res));
+  NanReturnValue(rubyToV8(res));
 }
 
 // TODO: Is this the best signature?
@@ -67,28 +72,29 @@ VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
 {
   assert(argc > 0);
   
-  HandleScope scope;
+  NanScope();
   
-  Persistent<Object>* owner;
-  Data_Get_Struct(self, Persistent<Object>, owner);
+  Persistent<Object>* persistOwner;
+  Data_Get_Struct(self, Persistent<Object>, persistOwner);
+  Local<Object> owner = NanNew<Object>(*persistOwner);
   
   VALUE rbName = rb_id2str(SYM2ID(argv[0]));
   
   log("MethodMissing called for " << RSTRING_PTR(rbName) << endl);
   
-  Local<String> v8Name = String::NewSymbol(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
-  Local<Value> prop = (*owner)->Get(v8Name);
+  Local<String> v8Name = NanNew<String>(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
+  Local<Value> prop = owner->Get(v8Name);
   log(RSTRING_PTR(rbName) << " is: " << *String::Utf8Value(prop) << endl);
   if (prop->IsFunction()) {
-    return CallV8FromRuby(*owner, prop.As<Function>(), argc-1, argv+1);
+    return CallV8FromRuby(owner, prop.As<Function>(), argc-1, argv+1);
   }
   else
     return rb_call_super(argc, argv);
 }
 
-Handle<Value> DefineClass(const Arguments& args)
+NAN_METHOD(DefineClass)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<String> name = args[0]->ToString();
   log("Inherit called for " << *String::Utf8Value(name) << endl);
@@ -96,7 +102,8 @@ Handle<Value> DefineClass(const Arguments& args)
   VALUE ex;
   VALUE super = SafeRubyCall(ClassGetter(args[1]), ex);
   if (ex != Qnil) {
-    return scope.Close(ThrowException(rubyExToV8(ex)));
+    NanThrowError(rubyExToV8(ex));
+    NanReturnUndefined();
   }
 
   VALUE klass = rb_define_class(*String::Utf8Value(name), super);
@@ -105,7 +112,7 @@ Handle<Value> DefineClass(const Arguments& args)
   // TODO: Implement responds_to? method
   rb_define_method(klass, "method_missing", RUBY_METHOD_FUNC(MethodMissing), -1);
   
-  return scope.Close(ctor);
+  NanReturnValue(ctor);
 }
 
 struct EvalCaller
@@ -119,47 +126,49 @@ struct EvalCaller
   const char* str;
 };
 
-Handle<Value> Eval(const Arguments& args)
+NAN_METHOD(Eval)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<String> str = args[0]->ToString();
+  // TODO: This pattern is pretty common. Can we move it to a function/macro?
   VALUE ex;
   VALUE res = SafeRubyCall(EvalCaller(*String::Utf8Value(str)), ex);
   if (ex != Qnil) {
-    return scope.Close(ThrowException(rubyExToV8(ex)));
+    NanThrowError(rubyExToV8(ex));
+    NanReturnUndefined();
   }
 
-  return scope.Close(rubyToV8(res));
+  NanReturnValue(rubyToV8(res));
 }
 
 // TODO: Can this be combined with RubyObject::CallMethod? Maybe rename?
-Handle<Value> CallMethod(const Arguments& args)
+NAN_METHOD(CallMethod)
 {
-  HandleScope scope;
-  return scope.Close(CallRubyFromV8(rb_cObject, args));
+  NanScope();
+  NanReturnValue(CallRubyFromV8(rb_cObject, args));
 }
 
 // TODO: Should this throw immediately if the function doesnt exist?
-Handle<Value> GetFunction(const Arguments& args)
+NAN_METHOD(GetFunction)
 {
-  HandleScope scope;
+  NanScope();
 
   Local<String> name = args[0]->ToString();
   ID methodID = rb_intern(*String::Utf8Value(name));
   Local<Function> func =
-    FunctionTemplate::New(CallMethod, External::Wrap((void*)methodID))->GetFunction();
+    NanNew<FunctionTemplate>(CallMethod, EXTERNAL_WRAP((void*)methodID))->GetFunction();
   func->SetName(name);
 
-  return scope.Close(func);
+  NanReturnValue(func);
 }
 
-Handle<Value> GCStart(const Arguments& args)
+NAN_METHOD(GCStart)
 {
-  HandleScope scope;
+  NanScope();
   rb_gc_start();
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 void CleanupRuby(void*)
@@ -180,24 +189,24 @@ void Init(Handle<Object> exports) {
 
   node::AtExit(CleanupRuby);
                
-  exports->Set(String::NewSymbol("_getClass"),
-               FunctionTemplate::New(GetClass)->GetFunction());
+  exports->Set(NanNew<String>("_getClass"),
+               NanNew<FunctionTemplate>(GetClass)->GetFunction());
 
-  exports->Set(String::NewSymbol("_gcStart"),
-               FunctionTemplate::New(GCStart)->GetFunction());
+  exports->Set(NanNew<String>("_gcStart"),
+               NanNew<FunctionTemplate>(GCStart)->GetFunction());
                
-  exports->Set(String::NewSymbol("_defineClass"),
-               FunctionTemplate::New(DefineClass)->GetFunction());
+  exports->Set(NanNew<String>("_defineClass"),
+               NanNew<FunctionTemplate>(DefineClass)->GetFunction());
 
-  exports->Set(String::NewSymbol("require"),
-               FunctionTemplate::New(Require)->GetFunction());
+  exports->Set(NanNew<String>("require"),
+               NanNew<FunctionTemplate>(Require)->GetFunction());
                
-  exports->Set(String::NewSymbol("eval"),
-               FunctionTemplate::New(Eval)->GetFunction());
+  exports->Set(NanNew<String>("eval"),
+               NanNew<FunctionTemplate>(Eval)->GetFunction());
   
   // TODO: Right name?             
-  exports->Set(String::NewSymbol("getFunction"),
-               FunctionTemplate::New(GetFunction)->GetFunction());
+  exports->Set(NanNew<String>("getFunction"),
+               NanNew<FunctionTemplate>(GetFunction)->GetFunction());
 }
 
 NODE_MODULE(ruby_bridge, Init)
