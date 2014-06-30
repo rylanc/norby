@@ -109,4 +109,27 @@ describe('return', function() {
       expect(result).to.deep.equal([4, 3, 9]);
     });
   });
+  
+  describe('ruby object', function() {
+    it('should return a valid Time object', function() {
+      var r = new Returner();
+      var t = r.ret_time();
+      
+      expect(t.year()).to.equal(2001);
+      expect(t.month()).to.equal(2);
+      expect(t.mday()).to.equal(3);
+    });
+    
+    it('should return the same object for subsequent calls', function() {
+      var r = new Returner();
+      var t1 = ruby.newInstance('Time', 2005, 8, 7);
+      r.set_time(t1);
+      var t2 = r.get_time();
+      
+      expect(t2.year()).to.equal(2005);
+      expect(t2.month()).to.equal(8);
+      expect(t2.mday()).to.equal(7);
+      expect(t2).to.equal(t1);
+    });
+  });
 });

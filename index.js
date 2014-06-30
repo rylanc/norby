@@ -6,8 +6,12 @@ module.exports.newInstance = function() {
   return new (Cls.bind.apply(Cls, arguments))();
 };
 
-function addToProto(Cls, RubyClass) {
-  // TODO: Is there a better/faster way to do this?
+function getCtor(RubyClass) {
+  function Cls() {
+    this._rubyObj = new RubyClass(this, undefined, arguments);
+  }
+  
+  // TODO: Is there a better/faster way to do this? Can we cache these protos?
   function proxyFunc(func) {
     return function() {
       return func.apply(this._rubyObj, arguments);
@@ -19,28 +23,19 @@ function addToProto(Cls, RubyClass) {
     var key = propNames[i];
     Cls.prototype[key] = proxyFunc(RubyClass.prototype[key]);
   }
+  
+  return Cls;
 }
 
 var getClass = module.exports.getClass = function(name) {
   var RubyClass = bindings._getClass(name);
   
-  function Cls() {
-    this._rubyObj = new RubyClass(undefined, arguments);
-  }
-  
-  addToProto(Cls, RubyClass);
-  
-  return Cls;
+  return getCtor(RubyClass);
 };
 
 module.exports.inherits = function(ctor, superName) {
   var RubyClass = bindings._defineClass(ctor.name, superName);
-  
-  function SuperCtor() {
-    this._rubyObj = new RubyClass(this, arguments);
-  }
-  
-  addToProto(SuperCtor, RubyClass);
+  var SuperCtor = getCtor(RubyClass);
   
   util.inherits(ctor, SuperCtor);
 };

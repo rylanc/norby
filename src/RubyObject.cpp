@@ -79,19 +79,25 @@ NAN_METHOD(RubyObject::New)
   if (args.IsConstructCall()) {
     VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
     
-    Local<Array> v8Args = args[1].As<Array>();
-    std::vector<VALUE> rubyArgs(v8Args->Length());
-    for (uint32_t i = 0; i < v8Args->Length(); i++) {
-      rubyArgs[i] = v8ToRuby(v8Args->Get(i));
+    VALUE obj = Qnil;
+    if (args[1]->IsUndefined()) {
+      Local<Array> v8Args = args[2].As<Array>();
+      std::vector<VALUE> rubyArgs(v8Args->Length());
+      for (uint32_t i = 0; i < v8Args->Length(); i++) {
+        rubyArgs[i] = v8ToRuby(v8Args->Get(i));
+      }
+    
+      log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl);
+    
+      VALUE ex;
+      obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
+      if (ex != Qnil) {
+        NanThrowError(rubyExToV8(ex));
+        NanReturnUndefined();
+      }
     }
-    
-    log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl);
-    
-    VALUE ex;
-    VALUE obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
-    if (ex != Qnil) {
-      NanThrowError(rubyExToV8(ex));
-      NanReturnUndefined();
+    else {
+      obj = VALUE(EXTERNAL_UNWRAP(args[1]));
     }
     
     // Wrap the obj immediately to prevent it from being garbage collected

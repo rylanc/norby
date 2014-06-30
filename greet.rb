@@ -19,6 +19,16 @@ class Greeter
       yield("hello", i)
     end
   end
+  def big
+    return 5234567890987654321
+  end
+  def set_time (t)
+    @time = t
+    return
+  end
+  def say_time
+    puts "Year is #{@time.year}"
+  end
 end
 
 class BenchmarkHelper
@@ -29,3 +39,9 @@ class BenchmarkHelper
     @val = @val + 1
   end
 end
+
+def speak
+  puts "Hi, Stan!"
+end
+
+my_var = 5

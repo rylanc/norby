@@ -1,4 +1,5 @@
 require "./greet.rb"
+require "./test/test.rb"
 
 greet = Greeter.new()
 
@@ -8,7 +9,6 @@ class Child < Greeter
   end
 end
 
-Child.new.try
-
-t = greet.echo('hi')
-puts t
+h = binding
+eval "b = 5", TOPLEVEL_BINDING
+puts eval "b", TOPLEVEL_BINDING

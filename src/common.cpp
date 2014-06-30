@@ -51,8 +51,29 @@ Handle<Value> rubyToV8(VALUE val)
     return NanEscapeScope(NanTrue());
   case T_FALSE:
     return NanEscapeScope(NanFalse());
+  case T_OBJECT: 
+  case T_DATA: {
+    VALUE wrappedObj = rb_ivar_get(val, RubyObject::V8_WRAPPER_ID);
+    
+    if (wrappedObj == Qnil) {
+      VALUE klass = rb_class_of(val);
+      Local<Function> ctor = RubyObject::GetClass(klass);
+    
+      // TODO: Doing it this way means we return an obj that doesn't have the this._rubyObj
+      // indirection. Is that OK? Is there a cleaner way to do this?
+      Handle<Value> argv[] =
+        { NanUndefined(), EXTERNAL_WRAP((void*)val), NanUndefined() };
+      return NanEscapeScope(ctor->NewInstance(3, argv));
+    }
+    else {
+      RubyObject* obj;
+      Data_Get_Struct(wrappedObj, RubyObject, obj);
+      
+      return NanEscapeScope(obj->GetOwner());
+    }
+  }
   default:
-    cerr << "Unknown ruby type: " << rb_obj_classname(val) << endl;
+    cerr << "Unknown ruby type(" << type << "): " << rb_obj_classname(val) << endl;
     return NanEscapeScope(NanUndefined());
   }
 }
