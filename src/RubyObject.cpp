@@ -10,7 +10,15 @@ using namespace v8;
 VALUE trueArg = Qtrue;
 
 const char* RubyObject::RUBY_OBJECT_TAG = "_IsRubyObject";
+ID RubyObject::V8_WRAPPER_ID;
 RubyObject::TplMap RubyObject::s_functionTemplates;
+VALUE RubyObject::s_wrappedClass;
+
+void RubyObject::Init()
+{
+  s_wrappedClass = rb_define_class("WrappedRubyObject", rb_cObject);
+  V8_WRAPPER_ID = rb_intern("@_wrappedObject");
+}
 
 Local<Function> RubyObject::GetClass(VALUE klass)
 {
@@ -49,35 +57,19 @@ Local<Function> RubyObject::GetClass(VALUE klass)
 }
 
 NAN_WEAK_CALLBACK(OwnerWeakCB)
-{
-  // assert(value.IsNearDeath());
-  // value.ClearWeak();
-  // NanDisposePersistent(value);
-  
-  // Persistent<Object>* owner = static_cast<Persistent<Object>*>(data);
-  // delete owner;
-}
+{}
 
 struct NewInstanceCaller
 {
-  NewInstanceCaller(std::vector<VALUE> &r, VALUE k, void* d) :
-    rubyArgs(r), klass(k), data(d) {}
+  NewInstanceCaller(std::vector<VALUE> &r, VALUE k) : rubyArgs(r), klass(k) {}
 
   VALUE operator()() const
   {
-    if (data == NULL) {
-      return rb_class_new_instance(rubyArgs.size(), &rubyArgs[0], klass);
-    }
-    else {
-      VALUE obj = Data_Wrap_Struct(klass, NULL, NULL, data);
-      rb_obj_call_init(obj, rubyArgs.size(), &rubyArgs[0]);
-      return obj;
-    }
+    return rb_class_new_instance(rubyArgs.size(), &rubyArgs[0], klass);
   }
 
   std::vector<VALUE>& rubyArgs;
   VALUE klass;
-  void* data;
 };
 
 NAN_METHOD(RubyObject::New)
@@ -86,16 +78,6 @@ NAN_METHOD(RubyObject::New)
   
   if (args.IsConstructCall()) {
     VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
-
-    Persistent<Object>* owner = NULL;
-    if (!args[0]->IsUndefined()) {
-      //owner = new Persistent<Object>();
-      //NanAssignPersistent(*owner, args[0].As<Object>());
-      //owner->MakeWeak(owner, OwnerWeakCB);
-      owner = &NanMakeWeakPersistent(args[0].As<Object>(), (void*)NULL, OwnerWeakCB)->persistent;
-      // TODO: Keep this?
-      owner->MarkIndependent();
-    }
     
     Local<Array> v8Args = args[1].As<Array>();
     std::vector<VALUE> rubyArgs(v8Args->Length());
@@ -106,16 +88,15 @@ NAN_METHOD(RubyObject::New)
     log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl);
     
     VALUE ex;
-    VALUE obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass, owner), ex);
+    VALUE obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
     if (ex != Qnil) {
       NanThrowError(rubyExToV8(ex));
       NanReturnUndefined();
     }
     
     // Wrap the obj immediately to prevent it from being garbage collected
-    RubyObject *self = new RubyObject(obj);
+    RubyObject *self = new RubyObject(obj, args[0]);
     self->Wrap(args.This());
-    
     args.This()->SetHiddenValue(NanNew<String>(RUBY_OBJECT_TAG), NanTrue());
     
     NanReturnValue(args.This());
@@ -135,9 +116,21 @@ NAN_METHOD(RubyObject::New)
   }
 }
 
-RubyObject::RubyObject(VALUE obj) : m_obj(obj)
+RubyObject::RubyObject(VALUE obj, Local<v8::Value> owner) :
+  m_obj(obj), m_owner(NULL)
 {
   rb_gc_register_address(&m_obj);
+  
+  if (!owner->IsUndefined()) {
+    // TODO: Does this get properly cleaned up?
+    m_owner = &NanMakeWeakPersistent(owner.As<Object>(), (void*)NULL,
+                                     OwnerWeakCB)->persistent;
+    // TODO: Keep this?
+    m_owner->MarkIndependent();
+  }
+  
+  VALUE wrappedObj = Data_Wrap_Struct(s_wrappedClass, NULL, NULL, this);
+  rb_ivar_set(obj, V8_WRAPPER_ID, wrappedObj);
 }
 
 RubyObject::~RubyObject()

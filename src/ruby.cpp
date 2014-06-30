@@ -74,9 +74,10 @@ VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
   
   NanScope();
   
-  Persistent<Object>* persistOwner;
-  Data_Get_Struct(self, Persistent<Object>, persistOwner);
-  Local<Object> owner = NanNew<Object>(*persistOwner);
+  RubyObject* obj;
+  VALUE wrappedObj = rb_ivar_get(self, RubyObject::V8_WRAPPER_ID);
+  Data_Get_Struct(wrappedObj, RubyObject, obj);
+  Local<Object> owner = obj->GetOwner();
   
   VALUE rbName = rb_id2str(SYM2ID(argv[0]));
   
@@ -106,6 +107,7 @@ NAN_METHOD(DefineClass)
     NanReturnUndefined();
   }
 
+  // TODO: Can this throw?
   VALUE klass = rb_define_class(*String::Utf8Value(name), super);
   Local<Function> ctor = RubyObject::GetClass(klass);
   
@@ -186,6 +188,8 @@ void Init(Handle<Object> exports) {
   RUBY_INIT_STACK;
   ruby_init();
   ruby_init_loadpath();
+  
+  RubyObject::Init();
 
   node::AtExit(CleanupRuby);
                
