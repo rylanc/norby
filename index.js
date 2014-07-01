@@ -18,17 +18,21 @@ function getCtor(RubyClass) {
     };
   }
   
-  var propNames = Object.getOwnPropertyNames(RubyClass.prototype);
-  for (var i = 0; i < propNames.length; i++) {
-    var key = propNames[i];
-    Cls.prototype[key] = proxyFunc(RubyClass.prototype[key]);
-  }
+  Object.getOwnPropertyNames(RubyClass.prototype).forEach(function(key) {
+    if (typeof RubyClass.prototype[key] === 'function')
+      Cls.prototype[key] = proxyFunc(RubyClass.prototype[key]);
+  });
   
-  if (typeof Cls.prototype.to_s !== 'undefined') {
+  Object.getOwnPropertyNames(RubyClass).forEach(function(key) {
+    if (typeof RubyClass[key] === 'function')
+      Cls[key] = RubyClass[key].bind(RubyClass);
+  });
+  
+  if (typeof Cls.prototype.to_s === 'function') {
     Cls.prototype.toString = Cls.prototype.to_s;
   }
   
-  if (typeof Cls.prototype.inspect !== 'undefined') {
+  if (typeof Cls.prototype.inspect === 'function') {
     Cls.prototype.inspect = function(depth) {
       return this._rubyObj.inspect();
     };

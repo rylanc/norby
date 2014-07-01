@@ -38,7 +38,8 @@ class RubyObject : public node::ObjectWrap
   ~RubyObject();
 
   static NAN_METHOD(New);
-  static NAN_METHOD(CallMethod);
+  static NAN_METHOD(CallInstanceMethod);
+  static NAN_METHOD(CallClassMethod);
 
   VALUE m_obj;
   v8::Persistent<v8::Object>* m_owner;

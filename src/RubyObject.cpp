@@ -51,9 +51,21 @@ Local<Function> RubyObject::GetClass(VALUE klass)
       Local<String> methodName = NanNew<String>(rb_id2name(methodID));
 
       Local<FunctionTemplate> methodTemplate =
-        NanNew<FunctionTemplate>(CallMethod, EXTERNAL_WRAP((void*)methodID));
+        NanNew<FunctionTemplate>(CallInstanceMethod, EXTERNAL_WRAP((void*)methodID));
       tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
     }
+    
+    tpl->PrototypeTemplate()->SetInternalFieldCount(1);
+    methods = rb_obj_singleton_methods(1, &trueArg, klass);
+    for (int i = 0; i < RARRAY_LEN(methods); i++) {
+      ID methodID = SYM2ID(rb_ary_entry(methods, i));
+      Local<String> methodName = NanNew<String>(rb_id2name(methodID));
+      
+      Local<FunctionTemplate> methodTemplate =
+        NanNew<FunctionTemplate>(CallClassMethod, EXTERNAL_WRAP((void*)methodID));
+      tpl->Set(methodName, methodTemplate->GetFunction());
+    }
+      
 
 #if (NODE_MODULE_VERSION > 0x000B)
     s_functionTemplates[klass].Reset(v8::Isolate::GetCurrent(), tpl);
@@ -70,8 +82,14 @@ Local<Function> RubyObject::GetClass(VALUE klass)
     tpl = NanNew<FunctionTemplate>(it->second);
 #endif
   }
-
-  return NanEscapeScope(tpl->GetFunction());
+  
+  // TODO: Should we be caching the functions instead of the templates?
+  Local<Function> fn = tpl->GetFunction();
+  Local<Object> proto = fn->Get(NanNew<String>("prototype")).As<Object>();
+  assert(proto->InternalFieldCount() > 0);
+  proto->SetPointerInInternalField(0, (void*)klass);
+  
+  return NanEscapeScope(fn);
 }
 
 NAN_WEAK_CALLBACK(OwnerWeakCB)
@@ -163,10 +181,21 @@ RubyObject::~RubyObject()
   rb_gc_unregister_address(&m_obj);
 }
 
-NAN_METHOD(RubyObject::CallMethod)
+NAN_METHOD(RubyObject::CallInstanceMethod)
 {
   NanScope();
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
   NanReturnValue(CallRubyFromV8(self->m_obj, args));
+}
+
+NAN_METHOD(RubyObject::CallClassMethod)
+{
+  NanScope();
+  
+  Local<Object> proto =
+    args.This()->Get(NanNew<String>("prototype")).As<Object>();
+  VALUE klass = VALUE(proto->GetPointerFromInternalField(0));
+
+  NanReturnValue(CallRubyFromV8(klass, args));
 }

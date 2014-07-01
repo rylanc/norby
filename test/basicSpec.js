@@ -31,7 +31,7 @@ describe('.getClass', function() {
     expect(fn).to.throw(ReferenceError);
   });
   
-  if('should alias to_s to toString', function() {
+  it('should alias to_s to toString', function() {
     var Time = ruby.getClass('Time');
     expect(Time).to.respondTo('toString');
     
@@ -40,13 +40,22 @@ describe('.getClass', function() {
     expect(result).to.equal('2001-02-03 00:00:00 -0500');
   });
   
-  if('should alias inspect() to inspect(depth)', function() {
+  it('should alias inspect() to inspect(depth)', function() {
     var Time = ruby.getClass('Time');
     expect(Time).to.respondTo('inspect');
     
     var t = new Time(2001, 2, 3);
     var result = t.inspect(2);
     expect(result).to.equal('2001-02-03 00:00:00 -0500');
+  });
+  
+  it('should expose class methods', function() {
+    var Time = ruby.getClass('Time');
+    expect(Time).itself.to.respondTo('utc');
+    var t = Time.utc(2001, 2, 3);
+    expect(t.year()).to.equal(2001);
+    expect(t.month()).to.equal(2);
+    expect(t.mday()).to.equal(3);
   });
 });
 
