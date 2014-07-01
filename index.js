@@ -24,6 +24,16 @@ function getCtor(RubyClass) {
     Cls.prototype[key] = proxyFunc(RubyClass.prototype[key]);
   }
   
+  if (typeof Cls.prototype.to_s !== 'undefined') {
+    Cls.prototype.toString = Cls.prototype.to_s;
+  }
+  
+  if (typeof Cls.prototype.inspect !== 'undefined') {
+    Cls.prototype.inspect = function(depth) {
+      return this._rubyObj.inspect();
+    };
+  }
+  
   return Cls;
 }
 

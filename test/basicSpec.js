@@ -30,6 +30,24 @@ describe('.getClass', function() {
     var fn = function() { return ruby.getClass('DoesntExist'); };
     expect(fn).to.throw(ReferenceError);
   });
+  
+  if('should alias to_s to toString', function() {
+    var Time = ruby.getClass('Time');
+    expect(Time).to.respondTo('toString');
+    
+    var t = new Time(2001, 2, 3);
+    var result = t.toString();
+    expect(result).to.equal('2001-02-03 00:00:00 -0500');
+  });
+  
+  if('should alias inspect() to inspect(depth)', function() {
+    var Time = ruby.getClass('Time');
+    expect(Time).to.respondTo('inspect');
+    
+    var t = new Time(2001, 2, 3);
+    var result = t.inspect(2);
+    expect(result).to.equal('2001-02-03 00:00:00 -0500');
+  });
 });
 
 describe('.newInstance', function() {
