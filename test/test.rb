@@ -117,6 +117,15 @@ class InheritTester
   def make_call_with_args(arg1, arg2)
     return call_derived_with_args(arg1, arg2)
   end
+  def make_invalid_call
+    return doesnt_exist
+  end
+  def valid_responds
+    return respond_to? :call_derived
+  end
+  def invalid_responds
+    return respond_to? :doesnt_exist
+  end
 end
 
 class ArgsInheritTester

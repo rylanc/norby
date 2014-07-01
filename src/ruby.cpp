@@ -67,28 +67,41 @@ NAN_METHOD(Require)
   NanReturnValue(rubyToV8(res));
 }
 
-// TODO: Is this the best signature?
+inline
+Local<Value> GetV8Function(Local<Object> owner, ID methodID)
+{
+  NanEscapableScope();
+
+  VALUE rbName = rb_id2str(methodID);
+  Local<String> v8Name =
+    NanNew<String>(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
+
+  return NanEscapeScope(owner->Get(v8Name));
+}
+
 VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
 {
   assert(argc > 0);
-  
   NanScope();
   
-  RubyObject* obj;
-  VALUE wrappedObj = rb_ivar_get(self, RubyObject::V8_WRAPPER_ID);
-  Data_Get_Struct(wrappedObj, RubyObject, obj);
-  Local<Object> owner = obj->GetOwner();
-  
-  VALUE rbName = rb_id2str(SYM2ID(argv[0]));
-  
-  log("MethodMissing called for " << RSTRING_PTR(rbName) << endl);
-  
-  Local<String> v8Name = NanNew<String>(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
-  Local<Value> prop = owner->Get(v8Name);
-  log(RSTRING_PTR(rbName) << " is: " << *String::Utf8Value(prop) << endl);
-  if (prop->IsFunction()) {
+  Local<Object> owner = RubyObject::RubyUnwrap(self);
+  Local<Value> prop = GetV8Function(owner, SYM2ID(argv[0]));
+  if (prop->IsFunction())
     return CallV8FromRuby(owner, prop.As<Function>(), argc-1, argv+1);
-  }
+  else
+    return rb_call_super(argc, argv);
+}
+
+VALUE RespondTo(int argc, VALUE* argv, VALUE self)
+{
+  NanScope();
+
+  VALUE method, priv;
+  rb_scan_args(argc, argv, "11", &method, &priv);
+  Local<Value> prop =
+    GetV8Function(RubyObject::RubyUnwrap(self), rb_to_id(method));
+  if (prop->IsFunction())
+    return Qtrue;
   else
     return rb_call_super(argc, argv);
 }
@@ -111,8 +124,8 @@ NAN_METHOD(DefineClass)
   VALUE klass = rb_define_class(*String::Utf8Value(name), super);
   Local<Function> ctor = RubyObject::GetClass(klass);
   
-  // TODO: Implement responds_to? method
   rb_define_method(klass, "method_missing", RUBY_METHOD_FUNC(MethodMissing), -1);
+  rb_define_method(klass, "respond_to?", RUBY_METHOD_FUNC(RespondTo), -1);
   
   NanReturnValue(ctor);
 }

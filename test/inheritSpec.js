@@ -46,4 +46,32 @@ describe('.inherits', function() {
     expect(d.get_arg2()).to.equal(2);
     expect(d.get_arg3()).to.equal(3);
   });
+  
+  it('should throw when an undefined function is called', function() {
+    var d = new Derived();
+    var fn = function() { return d.make_invalid_call(); };
+    
+    expect(fn).to.throw(ReferenceError);
+  });
+  
+  it('should implement \'respond_to?\' that handles strings', function() {
+    var d = new Derived();
+    var result = d['respond_to?']('call_derived');
+    expect(result).to.be.true;
+    
+    result = d['respond_to?']('doesnt_exist');
+    expect(result).to.be.false;
+    
+    var fn = function() { return d['respond_to?'](); };
+    expect(fn).to.throw(Error);
+  });
+  
+  it('should implement \'respond_to?\' that handles symbols', function() {
+    var d = new Derived();
+    var result = d.valid_responds();
+    expect(result).to.be.true;
+    
+    result = d.invalid_responds();
+    expect(result).to.be.false;
+  });
 });

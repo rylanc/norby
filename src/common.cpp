@@ -53,9 +53,8 @@ Handle<Value> rubyToV8(VALUE val)
     return NanEscapeScope(NanFalse());
   case T_OBJECT: 
   case T_DATA: {
-    VALUE wrappedObj = rb_ivar_get(val, RubyObject::V8_WRAPPER_ID);
-    
-    if (wrappedObj == Qnil) {
+    Local<Object> owner = RubyObject::RubyUnwrap(val);
+    if (owner.IsEmpty()) {
       VALUE klass = rb_class_of(val);
       Local<Function> ctor = RubyObject::GetClass(klass);
     
@@ -65,12 +64,8 @@ Handle<Value> rubyToV8(VALUE val)
         { NanUndefined(), EXTERNAL_WRAP((void*)val), NanUndefined() };
       return NanEscapeScope(ctor->NewInstance(3, argv));
     }
-    else {
-      RubyObject* obj;
-      Data_Get_Struct(wrappedObj, RubyObject, obj);
-      
-      return NanEscapeScope(obj->GetOwner());
-    }
+    else
+      return NanEscapeScope(owner);
   }
   default:
     cerr << "Unknown ruby type(" << type << "): " << rb_obj_classname(val) << endl;

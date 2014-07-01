@@ -12,12 +12,20 @@ class RubyObject : public node::ObjectWrap
  
   static void Init();
   static v8::Local<v8::Function> GetClass(VALUE klass);
-  VALUE GetObject() { return m_obj; }
-  
-  v8::Local<v8::Object> GetOwner()
+  static inline v8::Local<v8::Object> RubyUnwrap(VALUE self)
   {
-    return NanNew<v8::Object>(*m_owner);
+    VALUE wrappedObj = rb_ivar_get(self, V8_WRAPPER_ID);
+    if (wrappedObj == Qnil) {
+      return v8::Local<v8::Object>();
+    }
+    else {
+      RubyObject* obj;
+      Data_Get_Struct(wrappedObj, RubyObject, obj);
+      return NanNew<v8::Object>(*obj->m_owner);
+    }
   }
+  
+  inline VALUE GetObject() { return m_obj; }
 
  private:
   RubyObject(VALUE obj, v8::Local<v8::Value> owner);
