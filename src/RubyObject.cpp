@@ -20,6 +20,18 @@ void RubyObject::Init()
   V8_WRAPPER_ID = rb_intern("@_wrappedObject");
 }
 
+void RubyObject::Cleanup()
+{
+  for (TplMap::iterator it = s_functionTemplates.begin();
+       it != s_functionTemplates.end(); ++it) {
+#if (NODE_MODULE_VERSION > 0x000B)
+    it->second.Reset();
+#else
+    NanDisposePersistent(it->second);
+#endif
+  }
+}
+
 Local<Function> RubyObject::GetClass(VALUE klass)
 {
   NanEscapableScope();
@@ -43,14 +55,20 @@ Local<Function> RubyObject::GetClass(VALUE klass)
       tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
     }
 
+#if (NODE_MODULE_VERSION > 0x000B)
+    s_functionTemplates[klass].Reset(v8::Isolate::GetCurrent(), tpl);
+#else
     NanAssignPersistent(s_functionTemplates[klass], tpl);
-    //s_functionTemplates[klass].Reset(v8::Isolate::GetCurrent(), tpl);
+#endif
   }
   else {
     log("Getting existing class: " << rb_class2name(klass) << endl);
     
+#if (NODE_MODULE_VERSION > 0x000B)    
+    tpl = Local<FunctionTemplate>::New(v8::Isolate::GetCurrent(), it->second);
+#else
     tpl = NanNew<FunctionTemplate>(it->second);
-    //tpl = Local<FunctionTemplate>::New(v8::Isolate::GetCurrent(), it->second);
+#endif
   }
 
   return NanEscapeScope(tpl->GetFunction());

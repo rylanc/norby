@@ -77,7 +77,7 @@ VALUE v8ToRuby(Handle<Value> val)
 {
   NanScope();
 
-  log("Converting " << *String::Utf8Value(val->ToDetailString()) << " to ruby" << endl);
+  log("Converting " << *String::Utf8Value(val->ToString()) << " to ruby" << endl);
 
   if (val->IsUndefined())
     return Qnil; // TODO: Is this right?
