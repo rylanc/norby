@@ -176,6 +176,9 @@ NAN_METHOD(GCStart)
 void CleanupRuby(void*)
 {
   log("Cleaning up!" << endl);
+  
+  RubyObject::Cleanup();
+  
   ruby_cleanup(0);
 }
 
