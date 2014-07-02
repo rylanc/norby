@@ -196,7 +196,8 @@ struct MethodCaller
   
   VALUE operator()() const
   {
-    log("Calling method: " << rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
+    log("Calling method: " << rb_obj_classname(obj) << "." <<
+        rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
     
     if (block.IsEmpty()) {
       log(endl);
