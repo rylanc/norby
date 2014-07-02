@@ -20,7 +20,7 @@ class RubyObject : public node::ObjectWrap
   static v8::Local<v8::Function> GetClass(VALUE klass, bool isSubClass = false);
   static inline v8::Local<v8::Object> RubyUnwrap(VALUE self)
   {
-    VALUE wrappedObj = rb_ivar_get(self, V8_WRAPPER_ID);
+    VALUE wrappedObj = rb_attr_get(self, V8_WRAPPER_ID);
     if (wrappedObj == Qnil) {
       return v8::Local<v8::Object>();
     }
