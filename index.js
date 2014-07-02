@@ -1,4 +1,4 @@
-var bindings = require('bindings')('ruby_bridge.node'),
+var bindings = require('bindings')('ruby_bridge.node')(getCtor),
     util = require("util");
 
 module.exports.newInstance = function() {
@@ -8,7 +8,7 @@ module.exports.newInstance = function() {
 
 function getCtor(RubyClass) {
   function Cls() {
-    this._rubyObj = new RubyClass(this, undefined, arguments);
+    this._rubyObj = new RubyClass(this, arguments);
   }
   
   // TODO: Is there a better/faster way to do this? Can we cache these protos?

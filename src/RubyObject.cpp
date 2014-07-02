@@ -115,9 +115,13 @@ NAN_METHOD(RubyObject::New)
   if (args.IsConstructCall()) {
     VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
     
+    Local<Array> v8Args = args[1].As<Array>();
     VALUE obj = Qnil;
-    if (args[1]->IsUndefined()) {
-      Local<Array> v8Args = args[2].As<Array>();
+    if (v8Args->Length() == 1 && v8Args->Get(0)->IsExternal()) {
+      log("Wrapping existing " << rb_class2name(klass) << endl);
+      obj = VALUE(EXTERNAL_UNWRAP(v8Args->Get(0)));
+    }
+    else {
       std::vector<VALUE> rubyArgs(v8Args->Length());
       for (uint32_t i = 0; i < v8Args->Length(); i++) {
         rubyArgs[i] = v8ToRuby(v8Args->Get(i));
@@ -131,9 +135,6 @@ NAN_METHOD(RubyObject::New)
         NanThrowError(rubyExToV8(ex));
         NanReturnUndefined();
       }
-    }
-    else {
-      obj = VALUE(EXTERNAL_UNWRAP(args[1]));
     }
     
     // Wrap the obj immediately to prevent it from being garbage collected

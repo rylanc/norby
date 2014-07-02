@@ -1,8 +1,4 @@
-#include <node.h>
-#include <nan.h>
-#include <v8.h>
-#include <ruby.h>
-
+#include "Ruby.h"
 #include "RubyObject.h"
 #include "common.h"
 
@@ -10,6 +6,64 @@
 using namespace std;
 
 using namespace v8;
+
+Persistent<Function> Ruby::s_getCtor;
+
+void Ruby::Init(Handle<Object> module)
+{
+  int argc = 0;
+  char** argv = NULL;
+
+  // TODO: Do we need to call this?
+  ruby_sysinit(&argc, &argv);
+  RUBY_INIT_STACK;
+  ruby_init();
+  ruby_init_loadpath();
+  
+  node::AtExit(Cleanup);
+  
+  module->Set(NanNew<String>("exports"),
+              NanNew<FunctionTemplate>(New)->GetFunction());
+}
+
+void Ruby::Cleanup(void*)
+{
+  log("Cleaning up!" << endl);
+  RubyObject::Cleanup();
+  ruby_cleanup(0);
+}
+
+NAN_METHOD(Ruby::New)
+{
+  NanScope();
+  
+  assert(args[0]->IsFunction());
+  NanAssignPersistent(s_getCtor, args[0].As<Function>());
+  //log("first arg: " << *String::Utf8Value(args[0]) << endl);
+  
+  Local<Object> bindings = NanNew<Object>();
+  NODE_SET_METHOD(bindings, "_getClass", GetClass);
+  NODE_SET_METHOD(bindings, "_gcStart", GCStart);
+  NODE_SET_METHOD(bindings, "_defineClass", DefineClass);
+  NODE_SET_METHOD(bindings, "require", Require);
+  NODE_SET_METHOD(bindings, "eval", Eval);
+  // TODO: Right name?
+  NODE_SET_METHOD(bindings, "getFunction", GetFunction);
+  
+  NanReturnValue(bindings);
+}
+
+Local<Function> Ruby::GetCtorFromRuby(Local<Function> rubyClass)
+{
+  NanEscapableScope();
+  
+  Local<Function> getCtor = NanNew<Function>(s_getCtor);
+  Handle<Value> argv[] = { rubyClass };
+  return NanEscapeScope(NanMakeCallback(NanGetCurrentContext()->Global(), getCtor, 1, argv).As<Function>());
+}
+
+Ruby::Ruby() {}
+Ruby::~Ruby() {}
 
 struct ClassGetter
 {
@@ -27,7 +81,7 @@ struct ClassGetter
 };
 
 // TODO: Should/could we combine this with RubyObject::GetClass?
-NAN_METHOD(GetClass)
+NAN_METHOD(Ruby::GetClass)
 {
   NanScope();
 
@@ -41,30 +95,12 @@ NAN_METHOD(GetClass)
   NanReturnValue(RubyObject::GetClass(klass));
 }
 
-struct RequireCaller
-{
-  RequireCaller(const char* n) : name(n) {}
-  VALUE operator()() const
-  {
-    return rb_require(name);
-  }
-
-  const char* name;
-};
-
-NAN_METHOD(Require)
+NAN_METHOD(Ruby::GCStart)
 {
   NanScope();
+  rb_gc_start();
 
-  Local<String> name = args[0]->ToString();
-  VALUE ex;
-  VALUE res = SafeRubyCall(RequireCaller(*String::Utf8Value(name)), ex);
-  if (ex != Qnil) {
-    NanThrowError(rubyExToV8(ex));
-    NanReturnUndefined();
-  }
-
-  NanReturnValue(rubyToV8(res));
+  NanReturnUndefined();
 }
 
 inline
@@ -106,7 +142,7 @@ VALUE RespondTo(int argc, VALUE* argv, VALUE self)
     return rb_call_super(argc, argv);
 }
 
-NAN_METHOD(DefineClass)
+NAN_METHOD(Ruby::DefineClass)
 {
   NanScope();
 
@@ -130,6 +166,32 @@ NAN_METHOD(DefineClass)
   NanReturnValue(ctor);
 }
 
+struct RequireCaller
+{
+  RequireCaller(const char* n) : name(n) {}
+  VALUE operator()() const
+  {
+    return rb_require(name);
+  }
+
+  const char* name;
+};
+
+NAN_METHOD(Ruby::Require)
+{
+  NanScope();
+
+  Local<String> name = args[0]->ToString();
+  VALUE ex;
+  VALUE res = SafeRubyCall(RequireCaller(*String::Utf8Value(name)), ex);
+  if (ex != Qnil) {
+    NanThrowError(rubyExToV8(ex));
+    NanReturnUndefined();
+  }
+
+  NanReturnValue(rubyToV8(res));
+}
+
 struct EvalCaller
 {
   EvalCaller(const char* s) : str(s) {}
@@ -141,7 +203,7 @@ struct EvalCaller
   const char* str;
 };
 
-NAN_METHOD(Eval)
+NAN_METHOD(Ruby::Eval)
 {
   NanScope();
 
@@ -165,7 +227,7 @@ NAN_METHOD(CallMethod)
 }
 
 // TODO: Should this throw immediately if the function doesnt exist?
-NAN_METHOD(GetFunction)
+NAN_METHOD(Ruby::GetFunction)
 {
   NanScope();
 
@@ -177,56 +239,3 @@ NAN_METHOD(GetFunction)
 
   NanReturnValue(func);
 }
-
-NAN_METHOD(GCStart)
-{
-  NanScope();
-  rb_gc_start();
-
-  NanReturnUndefined();
-}
-
-void CleanupRuby(void*)
-{
-  log("Cleaning up!" << endl);
-  
-  RubyObject::Cleanup();
-  
-  ruby_cleanup(0);
-}
-
-void Init(Handle<Object> exports) {
-  int argc = 0;
-  char** argv = NULL;
-
-  // TODO: Do we need to call this?
-  ruby_sysinit(&argc, &argv);
-  RUBY_INIT_STACK;
-  ruby_init();
-  ruby_init_loadpath();
-  
-  RubyObject::Init();
-
-  node::AtExit(CleanupRuby);
-               
-  exports->Set(NanNew<String>("_getClass"),
-               NanNew<FunctionTemplate>(GetClass)->GetFunction());
-
-  exports->Set(NanNew<String>("_gcStart"),
-               NanNew<FunctionTemplate>(GCStart)->GetFunction());
-               
-  exports->Set(NanNew<String>("_defineClass"),
-               NanNew<FunctionTemplate>(DefineClass)->GetFunction());
-
-  exports->Set(NanNew<String>("require"),
-               NanNew<FunctionTemplate>(Require)->GetFunction());
-               
-  exports->Set(NanNew<String>("eval"),
-               NanNew<FunctionTemplate>(Eval)->GetFunction());
-  
-  // TODO: Right name?             
-  exports->Set(NanNew<String>("getFunction"),
-               NanNew<FunctionTemplate>(GetFunction)->GetFunction());
-}
-
-NODE_MODULE(ruby_bridge, Init)

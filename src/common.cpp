@@ -1,8 +1,8 @@
 #include "common.h"
+#include "Ruby.h"
 #include "RubyObject.h"
 #include <node.h>
 #include <cassert>
-//#include <vector>
 #include <limits>
 
 #include <iostream>
@@ -56,13 +56,11 @@ Handle<Value> rubyToV8(VALUE val)
     Local<Object> owner = RubyObject::RubyUnwrap(val);
     if (owner.IsEmpty()) {
       VALUE klass = rb_class_of(val);
-      Local<Function> ctor = RubyObject::GetClass(klass);
-    
-      // TODO: Doing it this way means we return an obj that doesn't have the this._rubyObj
-      // indirection. Is that OK? Is there a cleaner way to do this?
-      Handle<Value> argv[] =
-        { NanUndefined(), EXTERNAL_WRAP((void*)val), NanUndefined() };
-      return NanEscapeScope(ctor->NewInstance(3, argv));
+      Local<Function> rubyClass = RubyObject::GetClass(klass);
+      
+      Local<Function> ctor = Ruby::GetCtorFromRuby(rubyClass);
+      Handle<Value> argv[] = { External::New((void*)val) };
+      return NanEscapeScope(ctor->NewInstance(1, argv));
     }
     else
       return NanEscapeScope(owner);

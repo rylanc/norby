@@ -51,11 +51,19 @@ describe('.getClass', function() {
   
   it('should expose class methods', function() {
     var Time = ruby.getClass('Time');
+    
     expect(Time).itself.to.respondTo('utc');
     var t = Time.utc(2001, 2, 3);
     expect(t.year()).to.equal(2001);
     expect(t.month()).to.equal(2);
     expect(t.mday()).to.equal(3);
+    
+    expect(Time).itself.to.respondTo('at');
+    var t = Time.at(946702800);
+    t.utc();
+    expect(t.year()).to.equal(2000);
+    expect(t.month()).to.equal(1);
+    expect(t.mday()).to.equal(1);
   });
 });
 

@@ -3,7 +3,8 @@
     {
       "target_name": "ruby_bridge",
       "sources": [
-        "src/ruby.cpp",
+        "src/rubyBridge.cpp",
+        "src/Ruby.cpp",
         "src/common.cpp",
         "src/RubyObject.cpp"
       ],
