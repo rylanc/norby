@@ -48,6 +48,8 @@ NAN_METHOD(Ruby::New)
   NODE_SET_METHOD(bindings, "eval", Eval);
   // TODO: Right name?
   NODE_SET_METHOD(bindings, "getFunction", GetFunction);
+  // TODO: Maybe we should load the constants here and place them in an object?
+  NODE_SET_METHOD(bindings, "getConstant", GetConstant);
   
   NanReturnValue(bindings);
 }
@@ -62,15 +64,15 @@ Local<Function> Ruby::GetCtor(Local<Function> rubyClass)
                                         getCtor, 1, argv).As<Function>());
 }
 
-struct ClassGetter
+struct ConstGetter
 {
-  ClassGetter(Handle<Value> nv) : nameVal(nv) {}
+  ConstGetter(Handle<Value> nv) : nameVal(nv) {}
   VALUE operator()() const
   {
     NanScope();
 
-    Local<String> className = nameVal->ToString();
-    ID id = rb_intern(*String::Utf8Value(className));
+    Local<String> constName = nameVal->ToString();
+    ID id = rb_intern(*String::Utf8Value(constName));
     return rb_const_get(rb_cObject, id);
   }
 
@@ -83,7 +85,15 @@ NAN_METHOD(Ruby::GetClass)
   NanScope();
 
   VALUE klass;
-  SAFE_RUBY_CALL(klass, ClassGetter(args[0]));
+  SAFE_RUBY_CALL(klass, ConstGetter(args[0]));
+  
+  if (TYPE(klass) != T_CLASS) {
+    std::string msg(*String::Utf8Value(args[0]));
+    msg.append(" is not a class");
+    // TODO: TypeError?
+    NanThrowError(msg.c_str());
+    NanReturnUndefined();
+  }
   
   NanReturnValue(RubyObject::GetClass(klass));
 }
@@ -119,7 +129,7 @@ NAN_METHOD(Ruby::DefineClass)
   log("Inherit called for " << *String::Utf8Value(name) << endl);
 
   VALUE super;
-  SAFE_RUBY_CALL(super, ClassGetter(args[1]));
+  SAFE_RUBY_CALL(super, ConstGetter(args[1]));
   VALUE klass;
   SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
   
@@ -189,4 +199,15 @@ NAN_METHOD(Ruby::GetFunction)
   func->SetName(name);
 
   NanReturnValue(func);
+}
+
+NAN_METHOD(Ruby::GetConstant)
+{
+  NanScope();
+
+  VALUE constant;
+  SAFE_RUBY_CALL(constant, ConstGetter(args[0]));
+  
+  // TODO: Should we allow getting classes this way? Maybe throw an exception?
+  NanReturnValue(rubyToV8(constant));
 }

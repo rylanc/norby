@@ -26,9 +26,14 @@ describe('.getClass', function() {
     expect(Returner).to.be.a('function');
   });
   
-  it('should throw an exception given an invalid class name', function() {
+  it('should throw a ReferenceError given an invalid class name', function() {
     var fn = function() { return ruby.getClass('DoesntExist'); };
     expect(fn).to.throw(ReferenceError);
+  });
+  
+  it('should throw an Error given a non-class constant name', function() {
+    var fn = function() { return ruby.getClass('RUBY_DESCRIPTION'); };
+    expect(fn).to.throw(Error);
   });
   
   it('should alias to_s to toString', function() {
@@ -110,9 +115,24 @@ describe('.getFunction', function() {
     expect(result).to.equal(35);
   });
   
-  it('should throw an error given an invalid name', function() {
+  it('should throw a ReferenceError given an invalid name', function() {
     var doesntExist = ruby.getFunction('doesntExist');
     var fn = function() { doesntExist(); };
+    expect(fn).to.throw(ReferenceError);
+  });
+});
+
+describe('.getConstant', function() {
+  it('should return a value given a valid name', function() {
+    var TRUE = ruby.getConstant('TRUE');
+    expect(TRUE).to.be.true;
+    
+    var FALSE = ruby.getConstant('FALSE');
+    expect(FALSE).to.be.false;
+  });
+  
+  it('should throw a ReferenceError given an invalid name', function() {
+    var fn = function() { ruby.getConstant('DOESNT_EXIST'); };
     expect(fn).to.throw(ReferenceError);
   });
 });

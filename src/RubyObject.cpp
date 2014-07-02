@@ -114,6 +114,7 @@ struct NewInstanceCaller
   VALUE klass;
 };
 
+// TODO: Idea! What if instead of calling new RubyClass, we called the Ruby Class's .new function...
 NAN_METHOD(RubyObject::New)
 {
   NanScope();

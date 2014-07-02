@@ -20,6 +20,7 @@ class Ruby : public node::ObjectWrap
   static NAN_METHOD(Require);
   static NAN_METHOD(Eval);
   static NAN_METHOD(GetFunction);
+  static NAN_METHOD(GetConstant);
 
   static v8::Persistent<v8::Function> s_getCtor;
   
