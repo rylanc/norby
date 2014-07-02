@@ -37,6 +37,16 @@ inline VALUE SafeRubyCall(const F& f, VALUE &ex)
                     RUBY_METHOD_FUNC(RescueCB), VALUE(&ex), rb_eException, NULL);
 }
 
+#define SAFE_RUBY_CALL(x, y) \
+{ \
+  VALUE ex; \
+  x = SafeRubyCall(y, ex); \
+  if (ex != Qnil) { \
+    NanThrowError(rubyExToV8(ex)); \
+    NanReturnUndefined(); \
+  } \
+}
+
 VALUE CallV8FromRuby(const v8::Handle<v8::Object> recv,
                      const v8::Handle<v8::Function> callback,
                      int argc, const VALUE* argv);

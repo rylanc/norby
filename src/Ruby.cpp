@@ -82,12 +82,8 @@ NAN_METHOD(Ruby::GetClass)
 {
   NanScope();
 
-  VALUE ex;
-  VALUE klass = SafeRubyCall(ClassGetter(args[0]), ex);
-  if (ex != Qnil) {
-    NanThrowError(rubyExToV8(ex));
-    NanReturnUndefined();
-  }
+  VALUE klass;
+  SAFE_RUBY_CALL(klass, ClassGetter(args[0]));
   
   NanReturnValue(RubyObject::GetClass(klass));
 }
@@ -100,6 +96,21 @@ NAN_METHOD(Ruby::GCStart)
   NanReturnUndefined();
 }
 
+struct ClassDefiner
+{
+  ClassDefiner(Handle<Value> nv, VALUE s) : nameVal(nv), super(s) {}
+  VALUE operator()() const
+  {
+    NanScope();
+    
+    Local<String> className = nameVal->ToString();
+    return rb_define_class(*String::Utf8Value(className), super);
+  }
+  
+  Handle<Value> nameVal;
+  VALUE super;
+};
+
 NAN_METHOD(Ruby::DefineClass)
 {
   NanScope();
@@ -107,18 +118,12 @@ NAN_METHOD(Ruby::DefineClass)
   Local<String> name = args[0]->ToString();
   log("Inherit called for " << *String::Utf8Value(name) << endl);
 
-  VALUE ex;
-  VALUE super = SafeRubyCall(ClassGetter(args[1]), ex);
-  if (ex != Qnil) {
-    NanThrowError(rubyExToV8(ex));
-    NanReturnUndefined();
-  }
-
-  // TODO: Can this throw?
-  VALUE klass = rb_define_class(*String::Utf8Value(name), super);
-  Local<Function> ctor = RubyObject::GetClass(klass, true);
+  VALUE super;
+  SAFE_RUBY_CALL(super, ClassGetter(args[1]));
+  VALUE klass;
+  SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
   
-  NanReturnValue(ctor);
+  NanReturnValue(RubyObject::GetClass(klass, true));
 }
 
 struct RequireCaller
@@ -137,12 +142,8 @@ NAN_METHOD(Ruby::Require)
   NanScope();
 
   Local<String> name = args[0]->ToString();
-  VALUE ex;
-  VALUE res = SafeRubyCall(RequireCaller(*String::Utf8Value(name)), ex);
-  if (ex != Qnil) {
-    NanThrowError(rubyExToV8(ex));
-    NanReturnUndefined();
-  }
+  VALUE res;
+  SAFE_RUBY_CALL(res, RequireCaller(*String::Utf8Value(name)));
 
   NanReturnValue(rubyToV8(res));
 }
@@ -163,13 +164,8 @@ NAN_METHOD(Ruby::Eval)
   NanScope();
 
   Local<String> str = args[0]->ToString();
-  // TODO: This pattern is pretty common. Can we move it to a function/macro?
-  VALUE ex;
-  VALUE res = SafeRubyCall(EvalCaller(*String::Utf8Value(str)), ex);
-  if (ex != Qnil) {
-    NanThrowError(rubyExToV8(ex));
-    NanReturnUndefined();
-  }
+  VALUE res;
+  SAFE_RUBY_CALL(res, EvalCaller(*String::Utf8Value(str)));
 
   NanReturnValue(rubyToV8(res));
 }

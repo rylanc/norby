@@ -134,13 +134,7 @@ NAN_METHOD(RubyObject::New)
       }
     
       log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl);
-    
-      VALUE ex;
-      obj = SafeRubyCall(NewInstanceCaller(rubyArgs, klass), ex);
-      if (ex != Qnil) {
-        NanThrowError(rubyExToV8(ex));
-        NanReturnUndefined();
-      }
+      SAFE_RUBY_CALL(obj, NewInstanceCaller(rubyArgs, klass));
     }
     
     // Wrap the obj immediately to prevent it from being garbage collected
