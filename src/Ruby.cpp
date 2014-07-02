@@ -39,7 +39,6 @@ NAN_METHOD(Ruby::New)
   
   assert(args[0]->IsFunction());
   NanAssignPersistent(s_getCtor, args[0].As<Function>());
-  //log("first arg: " << *String::Utf8Value(args[0]) << endl);
   
   Local<Object> bindings = NanNew<Object>();
   NODE_SET_METHOD(bindings, "_getClass", GetClass);
@@ -53,17 +52,15 @@ NAN_METHOD(Ruby::New)
   NanReturnValue(bindings);
 }
 
-Local<Function> Ruby::GetCtorFromRuby(Local<Function> rubyClass)
+Local<Function> Ruby::GetCtor(Local<Function> rubyClass)
 {
   NanEscapableScope();
   
   Local<Function> getCtor = NanNew<Function>(s_getCtor);
   Handle<Value> argv[] = { rubyClass };
-  return NanEscapeScope(NanMakeCallback(NanGetCurrentContext()->Global(), getCtor, 1, argv).As<Function>());
+  return NanEscapeScope(NanMakeCallback(NanGetCurrentContext()->Global(),
+                                        getCtor, 1, argv).As<Function>());
 }
-
-Ruby::Ruby() {}
-Ruby::~Ruby() {}
 
 struct ClassGetter
 {
@@ -103,45 +100,6 @@ NAN_METHOD(Ruby::GCStart)
   NanReturnUndefined();
 }
 
-inline
-Local<Value> GetV8Function(Local<Object> owner, ID methodID)
-{
-  NanEscapableScope();
-
-  VALUE rbName = rb_id2str(methodID);
-  Local<String> v8Name =
-    NanNew<String>(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
-
-  return NanEscapeScope(owner->Get(v8Name));
-}
-
-VALUE MethodMissing(int argc, VALUE* argv, VALUE self)
-{
-  assert(argc > 0);
-  NanScope();
-  
-  Local<Object> owner = RubyObject::RubyUnwrap(self);
-  Local<Value> prop = GetV8Function(owner, SYM2ID(argv[0]));
-  if (prop->IsFunction())
-    return CallV8FromRuby(owner, prop.As<Function>(), argc-1, argv+1);
-  else
-    return rb_call_super(argc, argv);
-}
-
-VALUE RespondTo(int argc, VALUE* argv, VALUE self)
-{
-  NanScope();
-
-  VALUE method, priv;
-  rb_scan_args(argc, argv, "11", &method, &priv);
-  Local<Value> prop =
-    GetV8Function(RubyObject::RubyUnwrap(self), rb_to_id(method));
-  if (prop->IsFunction())
-    return Qtrue;
-  else
-    return rb_call_super(argc, argv);
-}
-
 NAN_METHOD(Ruby::DefineClass)
 {
   NanScope();
@@ -158,10 +116,7 @@ NAN_METHOD(Ruby::DefineClass)
 
   // TODO: Can this throw?
   VALUE klass = rb_define_class(*String::Utf8Value(name), super);
-  Local<Function> ctor = RubyObject::GetClass(klass);
-  
-  rb_define_method(klass, "method_missing", RUBY_METHOD_FUNC(MethodMissing), -1);
-  rb_define_method(klass, "respond_to?", RUBY_METHOD_FUNC(RespondTo), -1);
+  Local<Function> ctor = RubyObject::GetClass(klass, true);
   
   NanReturnValue(ctor);
 }

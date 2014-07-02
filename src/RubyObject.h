@@ -17,7 +17,7 @@ class RubyObject : public node::ObjectWrap
   static void Init();
   static void Cleanup();
   
-  static v8::Local<v8::Function> GetClass(VALUE klass);
+  static v8::Local<v8::Function> GetClass(VALUE klass, bool isSubClass = false);
   static inline v8::Local<v8::Object> RubyUnwrap(VALUE self)
   {
     VALUE wrappedObj = rb_ivar_get(self, V8_WRAPPER_ID);
@@ -40,6 +40,9 @@ class RubyObject : public node::ObjectWrap
   static NAN_METHOD(New);
   static NAN_METHOD(CallInstanceMethod);
   static NAN_METHOD(CallClassMethod);
+  
+  static VALUE MethodMissing(int argc, VALUE* argv, VALUE self);
+  static VALUE RespondTo(int argc, VALUE* argv, VALUE self);
 
   VALUE m_obj;
   v8::Persistent<v8::Object>* m_owner;

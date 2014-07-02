@@ -32,7 +32,7 @@ void RubyObject::Cleanup()
   }
 }
 
-Local<Function> RubyObject::GetClass(VALUE klass)
+Local<Function> RubyObject::GetClass(VALUE klass, bool isSubClass)
 {
   NanEscapableScope();
 
@@ -88,6 +88,12 @@ Local<Function> RubyObject::GetClass(VALUE klass)
   Local<Object> proto = fn->Get(NanNew<String>("prototype")).As<Object>();
   assert(proto->InternalFieldCount() > 0);
   proto->SetPointerInInternalField(0, (void*)klass);
+  
+  if (isSubClass) {
+    rb_define_method(klass, "method_missing",
+                     RUBY_METHOD_FUNC(MethodMissing), -1);
+    rb_define_method(klass, "respond_to?", RUBY_METHOD_FUNC(RespondTo), -1);
+  }
   
   return NanEscapeScope(fn);
 }
@@ -199,4 +205,43 @@ NAN_METHOD(RubyObject::CallClassMethod)
   VALUE klass = VALUE(proto->GetPointerFromInternalField(0));
 
   NanReturnValue(CallRubyFromV8(klass, args));
+}
+
+inline
+Local<Value> GetOwnerFunction(Local<Object> owner, ID methodID)
+{
+  NanEscapableScope();
+
+  VALUE rbName = rb_id2str(methodID);
+  Local<String> v8Name =
+    NanNew<String>(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
+
+  return NanEscapeScope(owner->Get(v8Name));
+}
+
+VALUE RubyObject::MethodMissing(int argc, VALUE* argv, VALUE self)
+{
+  assert(argc > 0);
+  NanScope();
+  
+  Local<Object> owner = RubyObject::RubyUnwrap(self);
+  Local<Value> func = GetOwnerFunction(owner, SYM2ID(argv[0]));
+  if (func->IsFunction())
+    return CallV8FromRuby(owner, func.As<Function>(), argc-1, argv+1);
+  else
+    return rb_call_super(argc, argv);
+}
+
+VALUE RubyObject::RespondTo(int argc, VALUE* argv, VALUE self)
+{
+  NanScope();
+
+  VALUE method, priv;
+  rb_scan_args(argc, argv, "11", &method, &priv);
+  Local<Value> func =
+    GetOwnerFunction(RubyObject::RubyUnwrap(self), rb_to_id(method));
+  if (func->IsFunction())
+    return Qtrue;
+  else
+    return rb_call_super(argc, argv);
 }

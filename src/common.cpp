@@ -58,7 +58,7 @@ Handle<Value> rubyToV8(VALUE val)
       VALUE klass = rb_class_of(val);
       Local<Function> rubyClass = RubyObject::GetClass(klass);
       
-      Local<Function> ctor = Ruby::GetCtorFromRuby(rubyClass);
+      Local<Function> ctor = Ruby::GetCtor(rubyClass);
       Handle<Value> argv[] = { External::New((void*)val) };
       return NanEscapeScope(ctor->NewInstance(1, argv));
     }
