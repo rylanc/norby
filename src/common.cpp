@@ -86,9 +86,11 @@ VALUE v8ToRuby(Handle<Value> val)
   else if (val->IsFalse())
     return Qfalse;
   else if (val->IsString()) {
-    // TODO: Is there any way to Write the string directly into the rb string?
-    String::Utf8Value str(val);
-    return rb_str_new(*str, str.length());
+    // TODO: We should handle encoding here
+    Handle<String> str = val.As<String>();
+    VALUE rbStr = rb_str_new(NULL, str->Utf8Length());
+    str->WriteUtf8(RSTRING_PTR(rbStr));
+    return rbStr;
   }
   else if (val->IsArray()) {
     Handle<Array> v8Arr = val.As<Array>();
