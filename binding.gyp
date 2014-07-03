@@ -1,7 +1,7 @@
 {
   "targets": [
     {
-      "target_name": "ruby_bridge",
+      "target_name": "norby",
       "sources": [
         "src/rubyBridge.cpp",
         "src/Ruby.cpp",

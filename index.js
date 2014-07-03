@@ -1,4 +1,4 @@
-var bindings = require('bindings')('ruby_bridge.node')(getCtor),
+var bindings = require('bindings')('norby.node')(getCtor),
     util = require("util");
 
 module.exports.newInstance = function() {

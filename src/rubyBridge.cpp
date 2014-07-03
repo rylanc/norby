@@ -7,4 +7,4 @@ void Init(Handle<Object> exports, Handle<Object> module) {
   Ruby::Init(module);
 }
 
-NODE_MODULE(ruby_bridge, Init)
+NODE_MODULE(norby, Init)

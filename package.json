@@ -1,7 +1,7 @@
 {
-  "name": "ruby-bridge",
-  "version": "0.0.1",
-  "description": "A bridge between node and ruby",
+  "name": "norby",
+  "version": "0.1.0",
+  "description": "Call your Ruby classes from node.js",
   "author": "Rylan Collins <rylan.collins@gmail.com>",
   "dependencies": {
     "bindings": "~1.1.1",
