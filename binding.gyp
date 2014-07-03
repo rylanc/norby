@@ -3,7 +3,7 @@
     {
       "target_name": "norby",
       "sources": [
-        "src/rubyBridge.cpp",
+        "src/norby.cpp",
         "src/Ruby.cpp",
         "src/common.cpp",
         "src/RubyObject.cpp"
