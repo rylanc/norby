@@ -81,7 +81,7 @@ describe('.newInstance', function() {
     expect(r).to.have.property('class');
   });
   
-  it('should throw an exception given an invalid class name', function() {
+  it('should throw a ReferenceError given an invalid class name', function() {
     var fn = function() { return ruby.newInstance('DoesntExist'); };
     expect(fn).to.throw(ReferenceError);
   });

@@ -63,6 +63,7 @@ describe('return', function() {
     });
   });
   
+  // TODO: Should we test negative numbers too?
   describe('bignum', function() {
     // Even though we lose precision due to conversion to floating point,
     // Bignums should still convert
