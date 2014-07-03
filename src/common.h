@@ -58,9 +58,11 @@ v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, const v8::Arguments& args);
 
 #if (NODE_MODULE_VERSION > 0x000B)
 #define EXTERNAL_WRAP(x) v8::External::New(v8::Isolate::GetCurrent(), x)
+#define EXTERNAL_NEW EXTERNAL_WRAP
 #define EXTERNAL_UNWRAP(x) x.As<External>()->Value()
 #else
 #define EXTERNAL_WRAP(x) v8::External::Wrap(x)
+#define EXTERNAL_NEW(x) v8::External::New(x)
 #define EXTERNAL_UNWRAP(x) v8::External::Unwrap(x)
 #endif
 

@@ -87,7 +87,7 @@ Local<Function> RubyObject::GetClass(VALUE klass, bool isSubClass)
   Local<Function> fn = tpl->GetFunction();
   Local<Object> proto = fn->Get(NanNew<String>("prototype")).As<Object>();
   assert(proto->InternalFieldCount() > 0);
-  proto->SetPointerInInternalField(0, (void*)klass);
+  NanSetInternalFieldPointer(proto, 0, (void*)klass);
   
   if (isSubClass) {
     rb_define_method(klass, "method_missing",
@@ -197,7 +197,7 @@ NAN_METHOD(RubyObject::CallClassMethod)
   
   Local<Object> proto =
     args.This()->Get(NanNew<String>("prototype")).As<Object>();
-  VALUE klass = VALUE(proto->GetPointerFromInternalField(0));
+  VALUE klass = VALUE(NanGetInternalFieldPointer(proto, 0));
 
   NanReturnValue(CallRubyFromV8(klass, args));
 }
