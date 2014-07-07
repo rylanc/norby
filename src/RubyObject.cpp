@@ -32,7 +32,7 @@ void RubyObject::Cleanup()
   }
 }
 
-Local<Function> RubyObject::GetClass(VALUE klass, bool isSubClass)
+Local<Function> RubyObject::GetClass(VALUE klass)
 {
   NanEscapableScope();
 
@@ -56,6 +56,7 @@ Local<Function> RubyObject::GetClass(VALUE klass, bool isSubClass)
     }
     
     tpl->PrototypeTemplate()->SetInternalFieldCount(1);
+    // TODO: Is this right? Not sure we get all the methods that the Class obj would expose.. (e.g. define_method)
     methods = rb_obj_singleton_methods(1, &trueArg, klass);
     for (int i = 0; i < RARRAY_LEN(methods); i++) {
       ID methodID = SYM2ID(rb_ary_entry(methods, i));
@@ -65,6 +66,10 @@ Local<Function> RubyObject::GetClass(VALUE klass, bool isSubClass)
         NanNew<FunctionTemplate>(CallClassMethod, EXTERNAL_WRAP((void*)methodID));
       tpl->Set(methodName, methodTemplate->GetFunction());
     }
+    
+    // TODO: Should we expose this to clients?
+    Local<FunctionTemplate> defineMethodTpl = NanNew<FunctionTemplate>(DefineMethod);
+    tpl->Set(NanNew<String>("_defineMethod"), defineMethodTpl->GetFunction());
       
 
 #if (NODE_MODULE_VERSION > 0x000B)
@@ -88,12 +93,6 @@ Local<Function> RubyObject::GetClass(VALUE klass, bool isSubClass)
   Local<Object> proto = fn->Get(NanNew<String>("prototype")).As<Object>();
   assert(proto->InternalFieldCount() > 0);
   NanSetInternalFieldPointer(proto, 0, (void*)klass);
-  
-  if (isSubClass) {
-    rb_define_method(klass, "method_missing",
-                     RUBY_METHOD_FUNC(MethodMissing), -1);
-    rb_define_method(klass, "respond_to?", RUBY_METHOD_FUNC(RespondTo), -1);
-  }
   
   return NanEscapeScope(fn);
 }
@@ -202,41 +201,47 @@ NAN_METHOD(RubyObject::CallClassMethod)
   NanReturnValue(CallRubyFromV8(klass, args));
 }
 
-inline
-Local<Value> GetOwnerFunction(Local<Object> owner, ID methodID)
+NAN_METHOD(RubyObject::DefineMethod)
 {
-  NanEscapableScope();
+  NanScope();
+  
+  Local<Object> proto =
+    args.This()->Get(NanNew<String>("prototype")).As<Object>();
+  VALUE klass = VALUE(NanGetInternalFieldPointer(proto, 0));
+  
+  log("Defining method " << rb_class2name(klass) << "." << *String::Utf8Value(args[0]) << endl);
+  
+  if (!args[1]->IsFunction()) {
+    // TODO: Should we do this check in JS?
+    std::string errMsg("fn must be a function: ");
+    errMsg.append(*String::Utf8Value(args[1]));
+    NanThrowTypeError(errMsg.c_str());
+    NanReturnUndefined();
+  }
 
-  VALUE rbName = rb_id2str(methodID);
-  Local<String> v8Name =
-    NanNew<String>(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
-
-  return NanEscapeScope(owner->Get(v8Name));
+  rb_define_method(klass, *String::Utf8Value(args[0]),
+                   RUBY_METHOD_FUNC(CallV8Method), -1);
+  
+  NanReturnUndefined();
 }
 
-VALUE RubyObject::MethodMissing(int argc, VALUE* argv, VALUE self)
+VALUE RubyObject::CallV8Method(int argc, VALUE* argv, VALUE self)
 {
-  assert(argc > 0);
+  log("In CallV8Method: " <<  rb_id2name(rb_frame_this_func()) << endl);
+  
   NanScope();
   
   Local<Object> owner = RubyObject::RubyUnwrap(self);
-  Local<Value> func = GetOwnerFunction(owner, SYM2ID(argv[0]));
+  VALUE rbName = rb_id2str(rb_frame_this_func());
+  Local<String> v8Name =
+    NanNew<String>(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
+  Local<Value> func = owner->Get(v8Name);
+  
   if (func->IsFunction())
-    return CallV8FromRuby(owner, func.As<Function>(), argc-1, argv+1);
-  else
-    return rb_call_super(argc, argv);
-}
-
-VALUE RubyObject::RespondTo(int argc, VALUE* argv, VALUE self)
-{
-  NanScope();
-
-  VALUE method, priv;
-  rb_scan_args(argc, argv, "11", &method, &priv);
-  Local<Value> func =
-    GetOwnerFunction(RubyObject::RubyUnwrap(self), rb_to_id(method));
-  if (func->IsFunction())
-    return Qtrue;
-  else
-    return rb_call_super(argc, argv);
+    return CallV8FromRuby(owner, func.As<Function>(), argc, argv);
+  else {
+    rb_raise(rb_eTypeError, "Property '%s' of object %s is not a function",
+             rb_id2name(rb_frame_this_func()), *String::Utf8Value(owner));
+    return Qnil;
+  }
 }

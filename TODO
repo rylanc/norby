@@ -6,16 +6,11 @@ Tests:
 Ruby objects:
  - class/obj variables?
  - convert JS objects to RB hashes? (vice versa)
- - convert common func names? (e.g. to_s -> toString)
- - protect inspect calls?
- - modules?
+ - modules
  - extending?
  - do we need to rb_rescue anywhere else?
  
 Misc:
  - should we support a way to maintain large number precision?
  - double check that unwrapping ruby objects works everywhere v8ToRuby is called
- - use existing ruby wrap when passed/returned
- - getting ruby globals
- - would TypedData_Wrap_Struct help prevent re-wrapping of already wrapped ruby objs?
- - convert to use nan
+ - add support for RUby 1.8? ("<!(ruby -e 'require \"rbconfig\"; puts Config::CONFIG[\"archdir\"]')")

@@ -10,13 +10,21 @@ describe('.inherits', function() {
     this.val = 'hello';
   }
 
-  Derived.prototype.call_derived = function() {
+  Derived.defineMethod('call_derived', function() {
     return 49895;
-  };
+  });
   
-  Derived.prototype.call_derived_with_args = function(arg1, arg2) {
+  Derived.defineMethod('call_derived_with_this', function(arg1, arg2) {
+    return this.val;
+  });
+  
+  Derived.defineMethod('call_derived_with_args', function(arg1, arg2) {
     return arg1 + arg2;
-  };
+  });
+  
+  Derived.defineMethod('call_missing', function() {
+    return 1234;
+  });
   
   it ('should throw when the subclass name matches an existing ruby class',
   function() {
@@ -35,10 +43,22 @@ describe('.inherits', function() {
       expect(Derived).to.respondTo('clone');
     });
 
-    it('should call derived methods', function() {
+    it('should call overridden methods', function() {
       var d = new Derived();
       var result = d.make_call();
       expect(result).to.equal(49895);
+    });
+    
+    it('should call newly defined methods', function() {
+      var d = new Derived();
+      var result = d.make_missing_call();
+      expect(result).to.equal(1234);
+    });
+    
+    it('should call methods with correct \'this\'', function() {
+      var d = new Derived();
+      var result = d.make_call_with_this();
+      expect(result).to.equal('hello');
     });
 
     it('should pass arguments to derived methods', function() {
@@ -67,30 +87,6 @@ describe('.inherits', function() {
 
       expect(fn).to.
       throw (ReferenceError);
-    });
-
-    it('should implement \'respond_to?\' that handles strings', function() {
-      var d = new Derived();
-      var result = d['respond_to?']('call_derived');
-      expect(result).to.be.true;
-
-      result = d['respond_to?']('doesnt_exist');
-      expect(result).to.be.false;
-
-      var fn = function() {
-        return d['respond_to?']();
-      };
-      expect(fn).to.
-      throw (Error);
-    });
-
-    it('should implement \'respond_to?\' that handles symbols', function() {
-      var d = new Derived();
-      var result = d.valid_responds();
-      expect(result).to.be.true;
-
-      result = d.invalid_responds();
-      expect(result).to.be.false;
     });
   });
 });

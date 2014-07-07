@@ -18,6 +18,8 @@ Handle<Value> rubyToV8(VALUE val)
   NanEscapableScope();
 
   log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8" << endl);
+  
+  // TODO: Should we convert Symbols to strings?
 
   int type = TYPE(val);
   switch (type) {
@@ -51,7 +53,7 @@ Handle<Value> rubyToV8(VALUE val)
     return NanEscapeScope(NanTrue());
   case T_FALSE:
     return NanEscapeScope(NanFalse());
-  case T_OBJECT: 
+  case T_OBJECT:
   case T_DATA: {
     Local<Object> owner = RubyObject::RubyUnwrap(val);
     if (owner.IsEmpty()) {
@@ -219,6 +221,7 @@ struct MethodCaller
   {
     MethodCaller* self = reinterpret_cast<MethodCaller*>(data);
   
+    // TODO: Should we store args.This() and call it as the receiver?
     return CallV8FromRuby(NanGetCurrentContext()->Global(), self->block,
                           argc, rbArgv);
   }
@@ -226,7 +229,7 @@ struct MethodCaller
   VALUE obj;
   VALUE methodID;
   std::vector<VALUE> rubyArgs;
-  // TODO: Should this be persistent?
+  // TODO: Should this be persistent? What if ruby doesn't call yield right away (i.e. Proc.new)?
   Local<Function> block;
 };
 

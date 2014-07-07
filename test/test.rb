@@ -111,8 +111,21 @@ class BlockTester
 end
 
 class InheritTester
+  def call_derived
+  end
+  def call_derived_with_args(arg1, arg2)
+  end
+  def call_derived_with_this
+  end
+  
   def make_call
     return call_derived
+  end
+  def make_missing_call
+    return call_missing
+  end
+  def make_call_with_this
+    return call_derived_with_this
   end
   def make_call_with_args(arg1, arg2)
     return call_derived_with_args(arg1, arg2)

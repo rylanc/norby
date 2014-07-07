@@ -133,7 +133,7 @@ NAN_METHOD(Ruby::DefineClass)
   VALUE klass;
   SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
   
-  NanReturnValue(RubyObject::GetClass(klass, true));
+  NanReturnValue(RubyObject::GetClass(klass));
 }
 
 struct RequireCaller

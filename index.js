@@ -51,7 +51,14 @@ module.exports.inherits = function(ctor, superName) {
   var RubyClass = bindings._defineClass(ctor.name, superName);
   var SuperCtor = getCtor(RubyClass);
   
+  // TODO: Do class methods work here? Should they even work?
+  
   util.inherits(ctor, SuperCtor);
+  
+  ctor.defineMethod = function(name, fn) {
+    RubyClass._defineMethod(name, fn);
+    this.prototype[name] = fn;
+  };
 };
 
 module.exports.require = bindings.require;
