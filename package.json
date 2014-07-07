@@ -2,9 +2,17 @@
   "name": "norby",
   "version": "0.1.0",
   "description": "Call your Ruby classes from node.js",
+  "keywords": [
+    "norby",
+    "ruby",
+    "bridge"
+  ],
   "author": "Rylan Collins <rylan.collins@gmail.com>",
+  "engines": {
+    "node": ">=0.10.0"
+  },
   "dependencies": {
-    "bindings": "~1.1.1",
+    "bindings": "~1.2.1",
     "nan": "~1.2.0"
   },
   "devDependencies": {
@@ -13,5 +21,6 @@
   },
   "scripts": {
     "test": "./node_modules/.bin/mocha -R spec"
-  }
+  },
+  "license": "MIT"
 }
