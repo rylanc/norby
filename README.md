@@ -41,9 +41,12 @@ console.log(t); // => '2014-07-02 00:00:00 -0400'
 
 ## What's missing
 
-norby is currently in an early beta state. Check back for updates as features are implemented.
+norby is currently in an early beta state. Check back for updates as features
+are implemented.
 
- - Windows support. node.js is built with Visual Studio while most Windows Ruby installers use [MinGW](http://www.mingw.org). It may work if you build Ruby with VS, but I haven't tried it yet.
+ - Windows support. node.js is built with Visual Studio while most Windows Ruby
+   installers use [MinGW](http://www.mingw.org). It may work if you build Ruby
+   with VS, but I haven't tried it yet.
  - Support for Ruby version 1.8.X
  - Support for Ruby hashes
  - Conversion of JS objects (that aren't wrapped Ruby objects)
@@ -60,7 +63,8 @@ norby is currently in an early beta state. Check back for updates as features ar
   
 ### ruby#require(name:String)
 
-  Calls Ruby's [require](http://www.ruby-doc.org/core/Kernel.html#method-i-require) function with the specified `name`.
+  Calls Ruby's [require](http://www.ruby-doc.org/core/Kernel.html#method-i-require)
+  function with the specified `name`.
   
 ### ruby#eval(code:String)
   
@@ -68,7 +72,8 @@ norby is currently in an early beta state. Check back for updates as features ar
 
 ### ruby#getClass(name:String)
 
-  Returns a wrapped Ruby class specified by `name`. The `new` class method will be called when the constructor is called.
+  Returns a wrapped Ruby class specified by `name`. The `new` class method will
+  be called when the constructor is called.
   
 ```js
 var Time = ruby.getClass('Time');
@@ -90,7 +95,8 @@ var t = Time.utc(2014, 7, 2);
 
 ### ruby#newInstance(className:String[, …])
 
-  Returns a new instance of a ruby object specified by `className`. Any additional arguments will be passed on to the class's   `new` method.
+  Returns a new instance of a ruby object specified by `className`. Any
+  additional arguments will be passed on to the class's   `new` method.
 
 ```js
 var t = ruby.newInstance('Time', 2014, 7, 2);
@@ -98,7 +104,12 @@ var t = ruby.newInstance('Time', 2014, 7, 2);
 
 ### ruby#inherits(derived:Constructor, superName:String)
   
-  Creates a new Ruby class (named `derived.name`) who's superclass is specified by `superName`. All public instance methods of `superName` will be added to the derived class's prototype. To add methods to the derived class, call its `defineMethod` function. This will add the method to the class's prototype and override the Ruby superclass's method. Adding the method to the prototype only will fail to override the superclass's method.
+  Creates a new Ruby class (named `derived.name`) who's superclass is specified
+  by `superName`. All public instance methods of `superName` will be added to
+  the derived class's prototype. To add methods to the derived class, call its
+  `defineMethod` function. This will add the method to the class's prototype and
+  override the Ruby superclass's method. Adding the method to the prototype only
+  will fail to override the superclass's method.
 
 ```ruby
 # base.rb
@@ -146,7 +157,8 @@ my_func('Stan');
 
 ### ruby#getConstant(name:String)
   
-  Returns the ruby constant specified by `name` (i.e. an [Object](http://www.ruby-doc.org/core/Object.html) constant).
+  Returns the ruby constant specified by `name`
+  (i.e. an [Object](http://www.ruby-doc.org/core/Object.html) constant).
   
 ```js
 var RUBY_VERSION = ruby.getConstant('RUBY_VERSION');
@@ -156,7 +168,8 @@ var RUBY_VERSION = ruby.getConstant('RUBY_VERSION');
 
 ### Methods
 
-Wrapped Ruby objects expose their public instance methods through function properties.
+Wrapped Ruby objects expose their public instance methods through function
+properties.
 
 ```js
 var Time = ruby.getClass('Time');
@@ -170,7 +183,8 @@ The Ruby `to_s` method is mapped to the JS `toString()` function.
 console.log(t.toString()); // => '2014-07-02 00:00:00 -0400'
 ```
 
-Since node's `console.log()` function calls `inspect` with  a `depth` argument, it is ignored when passed to the Ruby `inspect` method.
+Since node's `console.log()` function calls `inspect` with  a `depth` argument,
+it is ignored when passed to the Ruby `inspect` method.
 
 ```js
 console.log(t); // => '2014-07-02 00:00:00 -0400'
@@ -178,7 +192,8 @@ console.log(t); // => '2014-07-02 00:00:00 -0400'
 
 ### Blocks
 
-If the last argument in a method call is a function, it is passed to the method as a Ruby block.
+If the last argument in a method call is a function, it is passed to the method
+as a Ruby block.
 
 ```js
 var Regexp = ruby.getClass('Regexp');
@@ -202,7 +217,8 @@ Are converted to Ruby booleans.
 
 #### numbers
 
-If the number can be determined to be an integer (`v8::Value::IsInt32()`), it's converted to a Ruby `Fixnum`. Otherwise, it's converted to a `Float`.
+If the number can be determined to be an integer (`v8::Value::IsInt32()`), it's
+converted to a Ruby `Fixnum`. Otherwise, it's converted to a `Float`.
 
 #### arrays
 
@@ -232,7 +248,9 @@ Are converted to JS numbers.
 
 #### `Fixnum`s
 
-Are converted to JS numbers. Keep in mind that JS stores numbers as double precision floating point numbers, meaning that `FIxnum`s (and `Bignum`s will lose precision above 2<sup>53</sup>.
+Are converted to JS numbers. Keep in mind that JS stores numbers as double
+precision floating point numbers, meaning that `FIxnum`s (and `Bignum`s) will
+lose precision above 2<sup>53</sup>.
 
 #### `Bignum`s
 
@@ -256,7 +274,9 @@ Are wrapped as JS objects.
 
 #### Ruby exceptions
 
-Are caught within norby native code, converted to v8 exceptions and rethrown. The thrown v8 exceptions have a `rubyStack` property that holds the result of calling `Exception#backtrace` on the original Ruby exceptions.
+Are caught within norby native code, converted to v8 exceptions and rethrown.
+The thrown v8 exceptions have a `rubyStack` property that holds the result of
+calling `Exception#backtrace` on the original Ruby exceptions.
 
 ## License
 
