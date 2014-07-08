@@ -74,8 +74,14 @@ norby is currently in an early beta state. Check back for updates as features ar
 var Time = ruby.getClass('Time');
 var t = new Time(2014, 7, 2);
 ```
+  
+  To get a class within a module, separate the module and class with `::`.
+  
+```js
+var ZlibInflate = ruby.getClass('Zlip::Inflate');
+```
 
-Class methods are exposed as properties of the constructor.
+  Class methods are exposed as properties of the constructor.
 
 ```js
 var Time = ruby.getClass('Time');
@@ -238,7 +244,11 @@ Are converted to JS arrays. Their contents are recursively converted.
 
 #### strings
 
-Are converted to JS strings
+Are converted to JS strings.
+
+#### `Symbol`s
+
+Are converted to JS strings.
 
 #### Ruby objects
 

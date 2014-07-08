@@ -70,6 +70,13 @@ describe('.getClass', function() {
     expect(t.month()).to.equal(1);
     expect(t.mday()).to.equal(1);
   });
+  
+  it('should work with module classes', function() {
+    var ModClass = ruby.getClass('MyMod::ModClass');
+    var m = new ModClass;
+    var result = m.call_me();
+    expect(result).to.equal(3.14159);
+  });
 });
 
 describe('.newInstance', function() {

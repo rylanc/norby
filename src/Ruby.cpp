@@ -1,6 +1,7 @@
 #include "Ruby.h"
 #include "RubyObject.h"
 #include "common.h"
+#include <cstring>
 
 #include <iostream>
 using namespace std;
@@ -75,8 +76,21 @@ struct ConstGetter
     NanScope();
 
     Local<String> constName = nameVal->ToString();
-    ID id = rb_intern(*String::Utf8Value(constName));
-    return rb_const_get(rb_cObject, id);
+    String::Utf8Value constStr(constName);
+    
+    ID id;
+    VALUE mod;
+    const char* split = std::strstr(*constStr, "::");
+    if (split) {
+      id = rb_intern(split + 2);
+      mod = rb_const_get(rb_cObject, rb_intern2(*constStr, split - *constStr));
+    }
+    else {
+      id = rb_intern2(*constStr, constStr.length());
+      mod = rb_cObject;
+    }
+
+    return rb_const_get(mod, id);
   }
 
   Handle<Value> nameVal;
