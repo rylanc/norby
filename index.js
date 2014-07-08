@@ -61,7 +61,7 @@ module.exports.inherits = function(ctor, superName) {
   };
 };
 
-module.exports.require = bindings.getFunction('require');
+module.exports.require = bindings.getMethod('require');
 module.exports.eval = bindings.eval;
-module.exports.getFunction = bindings.getFunction;
+module.exports.getMethod = bindings.getMethod;
 module.exports.getConstant = bindings.getConstant;

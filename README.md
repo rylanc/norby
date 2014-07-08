@@ -95,7 +95,7 @@ var t = Time.utc(2014, 7, 2);
 
 ### ruby#newInstance(className:String[, …])
 
-  Returns a new instance of a ruby object specified by `className`. Any
+  Returns a new instance of a Ruby object specified by `className`. Any
   additional arguments will be passed on to the class's   `new` method.
 
 ```js
@@ -138,10 +138,9 @@ var d = new Derived();
 d.make_call(); // => 'In JS: Hello'
 ```
 
-### ruby#getFunction(name:String)
-**TODO:** Should we call them methods? Should they be global?
-  
-  Returns a JS function that wraps the ruby function specified by `name`.
+### ruby#getMethod(name:String)
+
+  Returns a JS function that wraps the Ruby method specified by `name`. This currently only works with [Kernel](http://www.ruby-doc.org/core/Kernel.html) methods.
 
 ```ruby
 # hello.rb
@@ -149,15 +148,16 @@ def my_func (name)
   puts "Hello, #{name}!"
 end
 ```
+
 ```js
 ruby.require('./hello');
-var my_func = ruby.getFunction('my_func');
+var my_func = ruby.getMethod('my_func');
 my_func('Stan');
 ```
 
 ### ruby#getConstant(name:String)
   
-  Returns the ruby constant specified by `name`
+  Returns the Ruby constant specified by `name`
   (i.e. an [Object](http://www.ruby-doc.org/core/Object.html) constant).
   
 ```js

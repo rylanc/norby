@@ -1,7 +1,7 @@
 var ruby = require('../index'),
     readline = require('readline');
 
-var replEval = ruby.getFunction('eval');
+var replEval = ruby.getMethod('eval');
 var TOPLEVEL_BINDING = ruby.getConstant('TOPLEVEL_BINDING');
 
 var rl = readline.createInterface(process.stdin, process.stdout);

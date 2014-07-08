@@ -112,9 +112,9 @@ describe('.eval', function() {
   });
 });
 
-describe('.getFunction', function() {
+describe('.getMethod', function() {
   it('should return a function given a valid name', function() {
-    var non_class_function = ruby.getFunction('non_class_function');
+    var non_class_function = ruby.getMethod('non_class_function');
     expect(non_class_function).to.be.a('function');
     
     var result = non_class_function(4, 8, 23);
@@ -123,7 +123,7 @@ describe('.getFunction', function() {
   });
   
   it('should throw a ReferenceError given an invalid name', function() {
-    var doesntExist = ruby.getFunction('doesntExist');
+    var doesntExist = ruby.getMethod('doesntExist');
     var fn = function() { doesntExist(); };
     expect(fn).to.throw(ReferenceError);
   });

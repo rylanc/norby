@@ -46,8 +46,7 @@ NAN_METHOD(Ruby::New)
   NODE_SET_METHOD(bindings, "_gcStart", GCStart);
   NODE_SET_METHOD(bindings, "_defineClass", DefineClass);
   NODE_SET_METHOD(bindings, "eval", Eval);
-  // TODO: Right name?
-  NODE_SET_METHOD(bindings, "getFunction", GetFunction);
+  NODE_SET_METHOD(bindings, "getMethod", GetMethod);
   // TODO: Maybe we should load the constants here and place them in an object?
   NODE_SET_METHOD(bindings, "getConstant", GetConstant);
   
@@ -179,7 +178,7 @@ NAN_METHOD(CallMethod)
 }
 
 // TODO: Should this throw immediately if the function doesnt exist?
-NAN_METHOD(Ruby::GetFunction)
+NAN_METHOD(Ruby::GetMethod)
 {
   NanScope();
 
