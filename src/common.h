@@ -4,10 +4,9 @@
 #include <v8.h>
 #include <ruby.h>
 
-#include <vector>
-
 #ifdef _DEBUG
-#define log(x) std::cout << x
+#include <iostream>
+#define log(x) std::cout << x << std::endl
 #else
 #define log(x)
 #endif

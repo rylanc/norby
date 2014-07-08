@@ -1,9 +1,7 @@
 #include "RubyObject.h"
 #include "common.h"
 #include <vector>
-
-#include <iostream>
-using namespace std;
+#include <string>
 
 using namespace v8;
 
@@ -39,7 +37,7 @@ Local<Function> RubyObject::GetClass(VALUE klass)
   Local<FunctionTemplate> tpl;
   TplMap::iterator it = s_functionTemplates.find(klass);
   if (it == s_functionTemplates.end()) {
-    log("Creating new class: " << rb_class2name(klass) << endl);
+    log("Creating new class: " << rb_class2name(klass));
     
     tpl = NanNew<FunctionTemplate>(New, EXTERNAL_WRAP((void*)klass));
     tpl->SetClassName(NanNew<String>(rb_class2name(klass)));
@@ -79,7 +77,7 @@ Local<Function> RubyObject::GetClass(VALUE klass)
 #endif
   }
   else {
-    log("Getting existing class: " << rb_class2name(klass) << endl);
+    log("Getting existing class: " << rb_class2name(klass));
     
 #if (NODE_MODULE_VERSION > 0x000B)    
     tpl = Local<FunctionTemplate>::New(v8::Isolate::GetCurrent(), it->second);
@@ -124,7 +122,7 @@ NAN_METHOD(RubyObject::New)
     Local<Array> v8Args = args[1].As<Array>();
     VALUE obj = Qnil;
     if (v8Args->Length() == 1 && v8Args->Get(0)->IsExternal()) {
-      log("Wrapping existing " << rb_class2name(klass) << endl);
+      log("Wrapping existing " << rb_class2name(klass));
       obj = VALUE(EXTERNAL_UNWRAP(v8Args->Get(0)));
     }
     else {
@@ -133,7 +131,7 @@ NAN_METHOD(RubyObject::New)
         rubyArgs[i] = v8ToRuby(v8Args->Get(i));
       }
     
-      log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args" << endl);
+      log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args");
       SAFE_RUBY_CALL(obj, NewInstanceCaller(rubyArgs, klass));
     }
     
@@ -178,7 +176,7 @@ RubyObject::RubyObject(VALUE obj, Local<v8::Value> owner) :
 
 RubyObject::~RubyObject()
 {
-  log("~RubyObject" << endl);
+  log("~RubyObject");
   rb_gc_unregister_address(&m_obj);
 }
 
@@ -209,7 +207,7 @@ NAN_METHOD(RubyObject::DefineMethod)
     args.This()->Get(NanNew<String>("prototype")).As<Object>();
   VALUE klass = VALUE(NanGetInternalFieldPointer(proto, 0));
   
-  log("Defining method " << rb_class2name(klass) << "." << *String::Utf8Value(args[0]) << endl);
+  log("Defining method " << rb_class2name(klass) << "." << *String::Utf8Value(args[0]));
   
   if (!args[1]->IsFunction()) {
     // TODO: Should we do this check in JS?
@@ -227,7 +225,7 @@ NAN_METHOD(RubyObject::DefineMethod)
 
 VALUE RubyObject::CallV8Method(int argc, VALUE* argv, VALUE self)
 {
-  log("In CallV8Method: " <<  rb_id2name(rb_frame_this_func()) << endl);
+  log("In CallV8Method: " <<  rb_id2name(rb_frame_this_func()));
   
   NanScope();
   

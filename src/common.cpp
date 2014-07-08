@@ -2,11 +2,9 @@
 #include "Ruby.h"
 #include "RubyObject.h"
 #include <node.h>
-#include <cassert>
+#include <vector>
 #include <limits>
-
 #include <iostream>
-using namespace std;
 
 using namespace v8;
 
@@ -17,7 +15,7 @@ Handle<Value> rubyToV8(VALUE val)
 {
   NanEscapableScope();
 
-  log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8" << endl);
+  log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8");
   
   // TODO: Should we convert Symbols to strings?
 
@@ -72,7 +70,8 @@ Handle<Value> rubyToV8(VALUE val)
     return NanEscapeScope(NanNew<String>(RSTRING_PTR(str), RSTRING_LEN(str)));
   }
   default:
-    cerr << "Unknown ruby type(" << type << "): " << rb_obj_classname(val) << endl;
+    std::cerr << "Unknown ruby type(" << type << "): " <<
+                 rb_obj_classname(val) << std::endl;
     return NanEscapeScope(NanUndefined());
   }
 }
@@ -81,7 +80,7 @@ VALUE v8ToRuby(Handle<Value> val)
 {
   NanScope();
 
-  log("Converting " << *String::Utf8Value(val) << " to ruby" << endl);
+  log("Converting " << *String::Utf8Value(val) << " to ruby");
 
   if (val->IsUndefined())
     return Qnil; // TODO: Is this right?
@@ -130,7 +129,7 @@ VALUE v8ToRuby(Handle<Value> val)
   
   // TODO: Should we wrap objects here?
   String::Utf8Value str(val->ToDetailString());
-  cerr << "Unknown v8 type: " << *str << endl;
+  std::cerr << "Unknown v8 type: " << *str << std::endl;
   return Qnil;
 }
 
@@ -156,7 +155,8 @@ Handle<Value> rubyExToV8(VALUE ex)
   else if (klass == rb_eSyntaxError)
     v8Err = Exception::SyntaxError(msgStr);
   else {
-    cerr << "Unknown ruby exception: " << rb_obj_classname(ex) << endl;
+    std::cerr << "Unknown ruby exception: " <<
+                 rb_obj_classname(ex) << std::endl;
     v8Err = Exception::Error(msgStr);
   }
   
@@ -241,16 +241,16 @@ struct MethodCaller
   
   VALUE operator()() const
   {
-    log("Calling method: " << rb_obj_classname(obj) << "." <<
-        rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
-
     if (block == NULL) {
-      log(endl);
+      log("Calling method: " << rb_obj_classname(obj) << "." <<
+          rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
     
       return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
     }
     else {
-      log(" and a block" << endl);
+      log("Calling method: " << rb_obj_classname(obj) << "." <<
+          rb_id2name(methodID) << " with " << rubyArgs.size() <<
+          " args and a block");
       
       // TODO: Probably not available in Ruby < 1.9
       return rb_block_call(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0],
@@ -283,7 +283,7 @@ void DumpRubyArgs(int argc, VALUE* argv)
 #ifdef _DEBUG
   for (int i = 0; i < argc; i++) {
     VALUE str = rb_funcall2(argv[i], rb_intern("to_s"), 0, NULL);
-    cout << i << ": " << StringValueCStr(str) << endl;
+    std::cout << i << ": " << StringValueCStr(str) << std::endl;
   }
 #endif
 }
@@ -297,7 +297,7 @@ void DumpV8Props(Handle<Object> obj)
   for (uint32_t i = 0; i < propNames->Length(); i++) {
     Local<Value> key = propNames->Get(i);
     
-    cout << *String::Utf8Value(key) << endl;
+    std::cout << *String::Utf8Value(key) << std::endl;
   }
 #endif
 }
@@ -308,7 +308,7 @@ void DumpV8Args(_NAN_METHOD_ARGS_TYPE args)
   NanScope();
   
   for (int i = 0; i < args.Length(); i++) {
-    cout << i << ": " << *String::Utf8Value(args[i]) << endl;
+    std::cout << i << ": " << *String::Utf8Value(args[i]) << std::endl;
   }
 #endif
 }

@@ -2,9 +2,7 @@
 #include "RubyObject.h"
 #include "common.h"
 #include <cstring>
-
-#include <iostream>
-using namespace std;
+#include <string>
 
 using namespace v8;
 
@@ -29,7 +27,7 @@ void Ruby::Init(Handle<Object> module)
 
 void Ruby::Cleanup(void*)
 {
-  log("Cleaning up!" << endl);
+  log("Cleaning up!");
   RubyObject::Cleanup();
   ruby_cleanup(0);
 }
@@ -138,7 +136,7 @@ NAN_METHOD(Ruby::DefineClass)
   NanScope();
 
   Local<String> name = args[0]->ToString();
-  log("Inherit called for " << *String::Utf8Value(name) << endl);
+  log("Inherit called for " << *String::Utf8Value(name));
 
   VALUE super;
   SAFE_RUBY_CALL(super, ConstGetter(args[1]));
