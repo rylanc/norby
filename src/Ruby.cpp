@@ -13,14 +13,11 @@ VALUE Ruby::BLOCK_WRAPPER_CLASS;
 
 void Ruby::Init(Handle<Object> module)
 {
-  int argc = 0;
-  char** argv = NULL;
+  static char* argv[] = { (char*)"norby", (char*)"-e", (char*)"" };
 
-  // TODO: Do we need to call this?
-  ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
   ruby_init();
-  ruby_init_loadpath();
+  ruby_options(3, argv);
   
   BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
   
