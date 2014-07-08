@@ -45,7 +45,6 @@ NAN_METHOD(Ruby::New)
   NODE_SET_METHOD(bindings, "_getClass", GetClass);
   NODE_SET_METHOD(bindings, "_gcStart", GCStart);
   NODE_SET_METHOD(bindings, "_defineClass", DefineClass);
-  NODE_SET_METHOD(bindings, "require", Require);
   NODE_SET_METHOD(bindings, "eval", Eval);
   // TODO: Right name?
   NODE_SET_METHOD(bindings, "getFunction", GetFunction);
@@ -148,28 +147,6 @@ NAN_METHOD(Ruby::DefineClass)
   SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
   
   NanReturnValue(RubyObject::GetClass(klass));
-}
-
-struct RequireCaller
-{
-  RequireCaller(const char* n) : name(n) {}
-  VALUE operator()() const
-  {
-    return rb_require(name);
-  }
-
-  const char* name;
-};
-
-NAN_METHOD(Ruby::Require)
-{
-  NanScope();
-
-  Local<String> name = args[0]->ToString();
-  VALUE res;
-  SAFE_RUBY_CALL(res, RequireCaller(*String::Utf8Value(name)));
-
-  NanReturnValue(rubyToV8(res));
 }
 
 struct EvalCaller
