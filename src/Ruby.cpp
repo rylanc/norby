@@ -41,7 +41,6 @@ NAN_METHOD(Ruby::New)
   
   Local<Object> bindings = NanNew<Object>();
   NODE_SET_METHOD(bindings, "_getClass", GetClass);
-  NODE_SET_METHOD(bindings, "_gcStart", GCStart);
   NODE_SET_METHOD(bindings, "_defineClass", DefineClass);
   NODE_SET_METHOD(bindings, "eval", Eval);
   NODE_SET_METHOD(bindings, "getMethod", GetMethod);
@@ -105,14 +104,6 @@ NAN_METHOD(Ruby::GetClass)
   }
   
   NanReturnValue(RubyObject::GetClass(klass));
-}
-
-NAN_METHOD(Ruby::GCStart)
-{
-  NanScope();
-  rb_gc_start();
-
-  NanReturnUndefined();
 }
 
 struct ClassDefiner
