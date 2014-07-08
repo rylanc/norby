@@ -142,23 +142,29 @@ Handle<Value> rubyExToV8(VALUE ex)
 
   VALUE msg = rb_funcall(ex, rb_intern("message"), 0);
   Local<String> msgStr = NanNew<String>(RSTRING_PTR(msg), RSTRING_LEN(msg));
+  Local<Value> v8Err;
 
-  // TODO: Do these error constructions work in all node versions?
   VALUE klass = rb_class_of(ex);
   if (klass == rb_eArgError ||
       klass == rb_eLoadError)
-    return NanEscapeScope(Exception::Error(msgStr));
+    v8Err = Exception::Error(msgStr);
   else if (klass == rb_eNameError ||
            klass == rb_eNoMethodError)
-    return NanEscapeScope(Exception::ReferenceError(msgStr));
+    v8Err = Exception::ReferenceError(msgStr);
   else if (klass == rb_eTypeError)
-    return NanEscapeScope(Exception::TypeError(msgStr));
+    v8Err = Exception::TypeError(msgStr);
   else if (klass == rb_eSyntaxError)
-    return NanEscapeScope(Exception::SyntaxError(msgStr));
+    v8Err = Exception::SyntaxError(msgStr);
   else {
     cerr << "Unknown ruby exception: " << rb_obj_classname(ex) << endl;
-    return NanEscapeScope(Exception::Error(msgStr));
+    v8Err = Exception::Error(msgStr);
   }
+  
+  VALUE backtrace = rb_funcall(ex, rb_intern("backtrace"), 0);
+  Local<Object> errObj = v8Err.As<Object>();
+  errObj->Set(NanNew<String>("rubyStack"), rubyToV8(backtrace));
+  
+  return NanEscapeScope(v8Err);
 }
 
 VALUE RescueCB(VALUE data, VALUE ex)
