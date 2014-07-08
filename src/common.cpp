@@ -67,6 +67,10 @@ Handle<Value> rubyToV8(VALUE val)
     else
       return NanEscapeScope(owner);
   }
+  case T_SYMBOL: {
+    VALUE str = rb_id2str(SYM2ID(val));
+    return NanEscapeScope(NanNew<String>(RSTRING_PTR(str), RSTRING_LEN(str)));
+  }
   default:
     cerr << "Unknown ruby type(" << type << "): " << rb_obj_classname(val) << endl;
     return NanEscapeScope(NanUndefined());
