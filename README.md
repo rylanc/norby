@@ -254,6 +254,10 @@ Are converted to JS strings.
 
 Are wrapped as JS objects.
 
+#### Ruby exceptions
+
+Are caught within norby native code, converted to v8 exceptions and rethrown. The thrown v8 exceptions have a `rubyStack` property that holds the result of calling `Exception#backtrace` on the original Ruby exceptions.
+
 ## License
 
 The MIT License (MIT)
