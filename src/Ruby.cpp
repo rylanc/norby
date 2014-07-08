@@ -100,8 +100,7 @@ NAN_METHOD(Ruby::GetClass)
   if (TYPE(klass) != T_CLASS) {
     std::string msg(*String::Utf8Value(args[0]));
     msg.append(" is not a class");
-    // TODO: TypeError?
-    NanThrowError(msg.c_str());
+    NanThrowTypeError(msg.c_str());
     NanReturnUndefined();
   }
   

@@ -31,9 +31,9 @@ describe('.getClass', function() {
     expect(fn).to.throw(ReferenceError);
   });
   
-  it('should throw an Error given a non-class constant name', function() {
+  it('should throw an TypeError given a non-class constant name', function() {
     var fn = function() { return ruby.getClass('RUBY_DESCRIPTION'); };
-    expect(fn).to.throw(Error);
+    expect(fn).to.throw(TypeError);
   });
   
   it('should alias to_s to toString', function() {
