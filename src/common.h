@@ -50,11 +50,7 @@ inline VALUE SafeRubyCall(const F& f, VALUE &ex)
 VALUE CallV8FromRuby(const v8::Handle<v8::Object> recv,
                      const v8::Handle<v8::Function> callback,
                      int argc, const VALUE* argv);
-#if (NODE_MODULE_VERSION > 0x000B)
-v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, const v8::FunctionCallbackInfo<v8::Value>& args);
-#else
-v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, const v8::Arguments& args);
-#endif
+v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, _NAN_METHOD_ARGS_TYPE args);
 
 #if (NODE_MODULE_VERSION > 0x000B)
 #define EXTERNAL_WRAP(x) v8::External::New(v8::Isolate::GetCurrent(), x)

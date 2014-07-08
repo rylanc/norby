@@ -8,6 +8,7 @@ using namespace std;
 using namespace v8;
 
 Persistent<Function> Ruby::s_getCtor;
+VALUE Ruby::BLOCK_WRAPPER_CLASS;
 
 void Ruby::Init(Handle<Object> module)
 {
@@ -19,6 +20,8 @@ void Ruby::Init(Handle<Object> module)
   RUBY_INIT_STACK;
   ruby_init();
   ruby_init_loadpath();
+  
+  BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
   
   node::AtExit(Cleanup);
   

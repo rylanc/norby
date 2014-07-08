@@ -183,13 +183,44 @@ VALUE CallV8FromRuby(const Handle<Object> recv,
 
 struct MethodCaller
 {
+  struct Block
+  {
+    Block(Handle<Function> f)
+    {
+      NanAssignPersistent(func, f);
+      dataObj = Data_Wrap_Struct(Ruby::BLOCK_WRAPPER_CLASS, NULL, Free, this);
+    }
+    
+    static VALUE Func(VALUE, VALUE data, int argc, const VALUE* rbArgv)
+    {
+      Block* block;
+      Data_Get_Struct(data, Block, block);
+  
+      Local<Function> fn = NanNew<Function>(block->func);
+      // TODO: Should we store args.This() and call it as the receiver?
+      return CallV8FromRuby(NanGetCurrentContext()->Global(), fn,
+                            argc, rbArgv);
+    }
+    
+    static void Free(void* data)
+    {
+      Block* block = static_cast<Block*>(data);
+      NanDisposePersistent(block->func);
+      delete block;
+    }
+    
+    Persistent<Function> func;
+    VALUE dataObj;
+  };
+  
   inline
   MethodCaller(VALUE o, _NAN_METHOD_ARGS_TYPE args):
-    obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))), rubyArgs(args.Length())
+    obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))), rubyArgs(args.Length()),
+    block(NULL)
   {
     // TODO: Is this right? Is there a way to determine if a block is expected?
     if (args.Length() > 0 && args[args.Length()-1]->IsFunction()) {
-      block = args[args.Length()-1].As<Function>();
+      block = new Block(args[args.Length()-1].As<Function>());
       rubyArgs.resize(args.Length()-1);
     }
     
@@ -202,8 +233,8 @@ struct MethodCaller
   {
     log("Calling method: " << rb_obj_classname(obj) << "." <<
         rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
-    
-    if (block.IsEmpty()) {
+
+    if (block == NULL) {
       log(endl);
     
       return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
@@ -213,24 +244,14 @@ struct MethodCaller
       
       // TODO: Probably not available in Ruby < 1.9
       return rb_block_call(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0],
-                           RUBY_METHOD_FUNC(BlockFunc), (VALUE)this);
+                           RUBY_METHOD_FUNC(Block::Func), block->dataObj);
     }
-  }
-  
-  static VALUE BlockFunc(VALUE, VALUE data, int argc, const VALUE* rbArgv)
-  {
-    MethodCaller* self = reinterpret_cast<MethodCaller*>(data);
-  
-    // TODO: Should we store args.This() and call it as the receiver?
-    return CallV8FromRuby(NanGetCurrentContext()->Global(), self->block,
-                          argc, rbArgv);
   }
 
   VALUE obj;
   VALUE methodID;
   std::vector<VALUE> rubyArgs;
-  // TODO: Should this be persistent? What if ruby doesn't call yield right away (i.e. Proc.new)?
-  Local<Function> block;
+  Block* block;
 };
 
 Handle<Value> CallRubyFromV8(VALUE recv, _NAN_METHOD_ARGS_TYPE args)

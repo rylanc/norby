@@ -55,4 +55,16 @@ describe('passing blocks', function() {
       });
     });
   });
+  
+  describe('persistent', function() {
+    it('should hold onto the passed function for the lifetime of the block',
+    function() {
+      var tester = new BlockTester();
+      tester.define_singleton_method('my_method', function() {
+        return 12345;
+      });
+      var result = tester.send('my_method');
+      expect(result).to.equal(12345);
+    });
+  });
 });
