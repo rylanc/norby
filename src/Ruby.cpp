@@ -158,7 +158,6 @@ NAN_METHOD(Ruby::Eval)
   NanReturnValue(rubyToV8(res));
 }
 
-// TODO: Can this be combined with RubyObject::CallMethod? Maybe rename?
 NAN_METHOD(CallMethod)
 {
   NanScope();

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NORBY_RUBY_H_
+#define NORBY_RUBY_H_
 
 #include <node.h>
 #include <nan.h>
@@ -30,3 +31,5 @@ class Ruby : public node::ObjectWrap
   Ruby();
   ~Ruby();
 };
+
+#endif // NORBY_RUBY_H_

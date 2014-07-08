@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NORBY_COMMON_H_
+#define NORBY_COMMON_H_
 
 #include <nan.h>
 #include <v8.h>
@@ -65,3 +66,5 @@ v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, _NAN_METHOD_ARGS_TYPE args);
 void DumpRubyArgs(int argc, VALUE* argv);
 void DumpV8Props(v8::Handle<v8::Object> obj);
 void DumpV8Args(_NAN_METHOD_ARGS_TYPE args);
+
+#endif // NORBY_COMMON_H_
