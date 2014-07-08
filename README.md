@@ -1,4 +1,5 @@
-# norby
+norby
+=====
 
 Call your Ruby classes from node.js
 
@@ -7,7 +8,7 @@ Call your Ruby classes from node.js
 Prerequisites:
 
     * node.js >= 0.10
-    * ruby > = 1.X.X
+    * ruby > = 1.9
 
 Install using npm:
 
@@ -34,9 +35,22 @@ var ruby = require('norby');
 
 var Time = ruby.getClass('Time');
 var t = new Time(2014, 7, 2);
-console.log('Year: ' + t.year());
-console.log(t);
+console.log('Year: ' + t.year()); // => 'Year: 2014'
+console.log(t); // => '2014-07-02 00:00:00 -0400'
 ```
+
+## What's missing
+
+norby is currently in an early beta state. Check back for updates as features are implemented.
+
+ - Windows support. node.js is built with Visual Studio while most Windows Ruby installers use [MinGW](http://www.mingw.org). It may work if you build Ruby with VS, but I haven't tried it yet.
+ - Support for Ruby version 1.8.X
+ - Support for Ruby hashes
+ - Conversion of JS objects (that aren't wrapped Ruby objects)
+ - Support for Ruby modules (as well as including/extending)
+ - Support for Ruby structs
+ - Support for Ruby class constants
+ - Support for Ruby global variables
 
 ## API
 
@@ -76,8 +90,39 @@ var t = Time.utc(2014, 7, 2);
 var t = ruby.newInstance('Time', 2014, 7, 2);
 ```
 
-**TODO:** Should we call them methods? Should they be global?
+### ruby#inherits(derived:Constructor, superName:String)
+  
+  Creates a new Ruby class (named `derived.name`) who's superclass is specified by `superName`. All public instance methods of `superName` will be added to the derived class's prototype. To add methods to the derived class, call its `defineMethod` function. This will add the method to the class's prototype and override the Ruby superclass's method. Adding the method to the prototype only will fail to override the superclass's method.
+
+```ruby
+# base.rb
+class Base
+  def call_me
+  end
+  def make_call
+    call_me
+  end
+end
+```
+```js
+ruby.require('./base');
+
+function Derived() {
+  Derived.super_.apply(this, arguments);
+  this.val = 'Hello';
+}
+ruby.inherits(Derived, 'Base');
+
+Derived.defineMethod('call_me', function() {
+  console.log('In JS: ' + this.val);
+});
+
+var d = new Derived();
+d.make_call(); // => 'In JS: Hello'
+```
+
 ### ruby#getFunction(name:String)
+**TODO:** Should we call them methods? Should they be global?
   
   Returns a JS function that wraps the ruby function specified by `name`.
 
