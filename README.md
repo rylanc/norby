@@ -20,6 +20,7 @@ Compile from repository:
 
 ```sh
 git clone https://github.com/rylanc/norby.git
+cd norby
 npm install
 ```
 
