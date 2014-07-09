@@ -8,7 +8,7 @@ Call your Ruby classes from node.js
 Prerequisites:
 
     * node.js >= 0.10
-    * ruby > = 1.9
+    * ruby >= 1.9
 
 Install using npm:
 
