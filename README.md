@@ -1,6 +1,9 @@
 norby
 =====
 
+[![NPM version](https://badge.fury.io/js/norby.svg)](http://badge.fury.io/js/norby)
+[![Build Status](https://travis-ci.org/rylanc/norby.svg?branch=master)](https://travis-ci.org/rylanc/norby)
+
 Call your Ruby libraries from node.js
 
 ```js
