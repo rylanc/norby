@@ -159,11 +159,18 @@ my_func('Stan');
 
 ### ruby#getConstant(name:String)
   
-  Returns the Ruby constant specified by `name`
-  (i.e. an [Object](http://www.ruby-doc.org/core/Object.html) constant).
+  Returns the Ruby constant specified by `name`. To get a constant within a module, separate the module and constant with ::. Without the separator, it returns an [Object](http://www.ruby-doc.org/core/Object.html) constant.
+
+```ruby
+# const.rb
+module MyMod
+  MY_CONST = "abcde"
+end
+```
   
 ```js
 var RUBY_VERSION = ruby.getConstant('RUBY_VERSION');
+console.log(ruby.getConstant('MyMod::MY_CONST')); // => 'abcde'
 ```
 
 ## Ruby objects
