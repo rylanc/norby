@@ -2,7 +2,7 @@ var expect = require('chai').expect,
     ruby = require('../index');
 
 describe('return', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   var Returner = ruby.getClass('Returner');
   
   describe('nothing', function() {

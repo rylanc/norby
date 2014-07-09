@@ -4,22 +4,22 @@ var expect = require('chai').expect,
 describe('.require', function() {
   
   it('shouldn\'t throw on valid file', function() {
-    ruby.require('./test/test.rb');
+    ruby.require('./test/helpers');
   });
   
   it('should throw on invalid file', function() {
-    var fn = function() { ruby.require('./dfgfgnfghjnjhm.rb'); };
+    var fn = function() { ruby.require('./dfgfgnfghjnjhm'); };
     expect(fn).to.throw(Error);
   });
   
   it('should throw a SyntaxError given invalid syntax', function() {
-    var fn = function() { ruby.require('./test/invalid.rb'); };
+    var fn = function() { ruby.require('./test/invalid'); };
     expect(fn).to.throw(SyntaxError);
   });
 });
 
 describe('.getClass', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   
   it('should return a constructor given an existing class name', function() {
     var Returner = ruby.getClass('Returner');
@@ -80,7 +80,7 @@ describe('.getClass', function() {
 });
 
 describe('.newInstance', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   
   it('should return an instance given an existing class name', function() {
     var r = ruby.newInstance('Returner');

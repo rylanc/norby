@@ -2,7 +2,7 @@ var expect = require('chai').expect,
     ruby = require('../index');
     
 describe('passing blocks', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   var BlockTester = ruby.getClass('BlockTester');
   
   describe('one', function() {

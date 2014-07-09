@@ -2,7 +2,7 @@ var expect = require('chai').expect,
     ruby = require('../index');
     
 describe('.inherits', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   ruby.inherits(Derived, 'InheritTester');
   
   function Derived() {
