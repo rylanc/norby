@@ -3,6 +3,15 @@ norby
 
 Call your Ruby libraries from node.js
 
+```js
+var ruby = require('norby');
+
+var Time = ruby.getClass('Time');
+var t = new Time(2014, 7, 2);
+console.log('Year: ' + t.year()); // => 'Year: 2014'
+console.log(t); // => '2014-07-02 00:00:00 -0400'
+```
+
 ## To install
 
 Prerequisites:
@@ -27,17 +36,6 @@ npm install
 Run unit tests:
 ```sh
 npm test
-```
-
-## How to use
-
-```js
-var ruby = require('norby');
-
-var Time = ruby.getClass('Time');
-var t = new Time(2014, 7, 2);
-console.log('Year: ' + t.year()); // => 'Year: 2014'
-console.log(t); // => '2014-07-02 00:00:00 -0400'
 ```
 
 ## What's missing
