@@ -85,6 +85,7 @@ class ArgsInspector
 end
 
 class ClassTester
+  MY_CONST = [1, 2]
   def initialize(val)
     @val = val
   end

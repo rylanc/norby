@@ -43,30 +43,41 @@ Local<Function> RubyObject::GetClass(VALUE klass)
     tpl->SetClassName(NanNew<String>(rb_class2name(klass)));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
+    // Instance methods
     VALUE methods = rb_class_public_instance_methods(1, &trueArg, klass);
     for (int i = 0; i < RARRAY_LEN(methods); i++) {
       ID methodID = SYM2ID(rb_ary_entry(methods, i));
-      Local<String> methodName = NanNew<String>(rb_id2name(methodID));
 
       Local<FunctionTemplate> methodTemplate =
-        NanNew<FunctionTemplate>(CallInstanceMethod, EXTERNAL_WRAP((void*)methodID));
-      tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
+        NanNew<FunctionTemplate>(CallInstanceMethod,
+                                 EXTERNAL_WRAP((void*)methodID));
+      tpl->PrototypeTemplate()->Set(rb_id2name(methodID),
+                                    methodTemplate->GetFunction());
     }
     
     tpl->PrototypeTemplate()->SetInternalFieldCount(1);
     // TODO: Is this right? Not sure we get all the methods that the Class obj would expose.. (e.g. define_method)
+    // Class methods
     methods = rb_obj_singleton_methods(1, &trueArg, klass);
     for (int i = 0; i < RARRAY_LEN(methods); i++) {
       ID methodID = SYM2ID(rb_ary_entry(methods, i));
-      Local<String> methodName = NanNew<String>(rb_id2name(methodID));
-      
+
       Local<FunctionTemplate> methodTemplate =
         NanNew<FunctionTemplate>(CallClassMethod, EXTERNAL_WRAP((void*)methodID));
-      tpl->Set(methodName, methodTemplate->GetFunction());
+      tpl->Set(rb_id2name(methodID), methodTemplate->GetFunction());
     }
     
-    Local<FunctionTemplate> defineMethodTpl = NanNew<FunctionTemplate>(DefineMethod);
-    tpl->Set(NanNew<String>("_defineMethod"), defineMethodTpl->GetFunction());
+    // Constants
+    VALUE constants = rb_mod_constants(0, NULL, klass);
+    for (int i = 0; i < RARRAY_LEN(constants); i++) {
+      ID constantID = SYM2ID(rb_ary_entry(constants, i));
+      
+      VALUE val = rb_const_get(klass, constantID);
+      tpl->Set(rb_id2name(constantID), rubyToV8(val));
+    }
+    
+    Local<FunctionTemplate> defMethTpl = NanNew<FunctionTemplate>(DefineMethod);
+    tpl->Set(NanNew<String>("_defineMethod"), defMethTpl->GetFunction());
     
 #if (NODE_MODULE_VERSION > 0x000B)
     s_functionTemplates[klass].Reset(v8::Isolate::GetCurrent(), tpl);

@@ -18,14 +18,16 @@ function getCtor(RubyClass) {
     };
   }
   
-  Object.getOwnPropertyNames(RubyClass.prototype).forEach(function(key) {
+  Object.keys(RubyClass.prototype).forEach(function(key) {
     if (typeof RubyClass.prototype[key] === 'function')
       Cls.prototype[key] = proxyFunc(RubyClass.prototype[key]);
   });
   
-  Object.getOwnPropertyNames(RubyClass).forEach(function(key) {
+  Object.keys(RubyClass).forEach(function(key) {
     if (typeof RubyClass[key] === 'function')
       Cls[key] = RubyClass[key].bind(RubyClass);
+    else
+      Cls[key] = RubyClass[key];
   });
   
   if (typeof Cls.prototype.to_s === 'function') {

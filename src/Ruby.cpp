@@ -96,6 +96,7 @@ NAN_METHOD(Ruby::GetClass)
   VALUE klass;
   SAFE_RUBY_CALL(klass, ConstGetter(args[0]));
 
+  // TODO: rb_is_class_id?
   if (TYPE(klass) != T_CLASS) {
     std::string msg(*String::Utf8Value(args[0]));
     msg.append(" is not a class");

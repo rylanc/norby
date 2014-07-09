@@ -77,6 +77,12 @@ describe('.getClass', function() {
     var result = m.call_me();
     expect(result).to.equal(3.14159);
   });
+  
+  it('should expose class constants', function() {
+    var ClassTester = ruby.getClass('ClassTester');
+    var result = ClassTester.MY_CONST;
+    expect(result).to.deep.equal([1, 2]);
+  });
 });
 
 describe('.newInstance', function() {
@@ -130,6 +136,8 @@ describe('.getMethod', function() {
 });
 
 describe('.getConstant', function() {
+  ruby.require('./test/helpers');
+  
   it('should return Object constants', function() {
     var TRUE = ruby.getConstant('TRUE');
     expect(TRUE).to.be.true;
@@ -139,10 +147,13 @@ describe('.getConstant', function() {
   });
   
   it('should return module constants', function() {
-    ruby.require('./test/helpers');
-    
     var MY_CONST = ruby.getConstant('MyMod::MY_CONST');
     expect(MY_CONST).to.equal('abcde');
+  });
+  
+  it('should return class constants', function() {
+    var MY_CONST = ruby.getConstant('ClassTester::MY_CONST');
+    expect(MY_CONST).to.deep.equal([1, 2]);
   });
   
   it('should throw a ReferenceError given an invalid name', function() {
