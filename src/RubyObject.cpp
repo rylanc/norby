@@ -65,11 +65,9 @@ Local<Function> RubyObject::GetClass(VALUE klass)
       tpl->Set(methodName, methodTemplate->GetFunction());
     }
     
-    // TODO: Should we expose this to clients?
     Local<FunctionTemplate> defineMethodTpl = NanNew<FunctionTemplate>(DefineMethod);
     tpl->Set(NanNew<String>("_defineMethod"), defineMethodTpl->GetFunction());
-      
-
+    
 #if (NODE_MODULE_VERSION > 0x000B)
     s_functionTemplates[klass].Reset(v8::Isolate::GetCurrent(), tpl);
 #else
@@ -85,8 +83,7 @@ Local<Function> RubyObject::GetClass(VALUE klass)
     tpl = NanNew<FunctionTemplate>(it->second);
 #endif
   }
-  
-  // TODO: Should we be caching the functions instead of the templates?
+
   Local<Function> fn = tpl->GetFunction();
   Local<Object> proto = fn->Get(NanNew<String>("prototype")).As<Object>();
   assert(proto->InternalFieldCount() > 0);
@@ -94,9 +91,6 @@ Local<Function> RubyObject::GetClass(VALUE klass)
   
   return NanEscapeScope(fn);
 }
-
-NAN_WEAK_CALLBACK(OwnerWeakCB)
-{}
 
 struct NewInstanceCaller
 {
@@ -111,64 +105,48 @@ struct NewInstanceCaller
   VALUE klass;
 };
 
-// TODO: Idea! What if instead of calling new RubyClass, we called the Ruby Class's .new function...
 NAN_METHOD(RubyObject::New)
 {
   NanScope();
-  
-  if (args.IsConstructCall()) {
-    VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
+  assert(args.IsConstructCall());
+
+  VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
     
-    Local<Array> v8Args = args[1].As<Array>();
-    VALUE obj = Qnil;
-    if (v8Args->Length() == 1 && v8Args->Get(0)->IsExternal()) {
-      log("Wrapping existing " << rb_class2name(klass));
-      obj = VALUE(EXTERNAL_UNWRAP(v8Args->Get(0)));
-    }
-    else {
-      std::vector<VALUE> rubyArgs(v8Args->Length());
-      for (uint32_t i = 0; i < v8Args->Length(); i++) {
-        rubyArgs[i] = v8ToRuby(v8Args->Get(i));
-      }
-    
-      log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args");
-      SAFE_RUBY_CALL(obj, NewInstanceCaller(rubyArgs, klass));
-    }
-    
-    // Wrap the obj immediately to prevent it from being garbage collected
-    RubyObject *self = new RubyObject(obj, args[0]);
-    self->Wrap(args.This());
-    args.This()->SetHiddenValue(NanNew<String>(RUBY_OBJECT_TAG), NanTrue());
-    
-    NanReturnValue(args.This());
+  Local<Array> v8Args = args[1].As<Array>();
+  VALUE obj = Qnil;
+  if (v8Args->Length() == 1 && v8Args->Get(0)->IsExternal()) {
+    log("Wrapping existing " << rb_class2name(klass));
+    obj = VALUE(EXTERNAL_UNWRAP(v8Args->Get(0)));
   }
   else {
-    // TODO: Do we even need this?
-    
-    std::vector<Handle<Value> > argv(args.Length());
-    for (int i = 0; i < args.Length(); i++) {
-      argv[i] = args[i];
+    std::vector<VALUE> rubyArgs(v8Args->Length());
+    for (uint32_t i = 0; i < v8Args->Length(); i++) {
+      rubyArgs[i] = v8ToRuby(v8Args->Get(i));
     }
-    
-    VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
-    Local<Function> cons = RubyObject::GetClass(klass);
-    
-    NanReturnValue(cons->NewInstance(args.Length(), &argv[0]));
+  
+    log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args");
+    SAFE_RUBY_CALL(obj, NewInstanceCaller(rubyArgs, klass));
   }
+    
+  // Wrap the obj immediately to prevent it from being garbage collected
+  RubyObject *self = new RubyObject(obj, args[0]);
+  self->Wrap(args.This());
+  args.This()->SetHiddenValue(NanNew<String>(RUBY_OBJECT_TAG), NanTrue());
+    
+  NanReturnValue(args.This());
 }
+
+NAN_WEAK_CALLBACK(OwnerWeakCB) {}
 
 RubyObject::RubyObject(VALUE obj, Local<v8::Value> owner) :
   m_obj(obj), m_owner(NULL)
 {
   rb_gc_register_address(&m_obj);
   
-  if (!owner->IsUndefined()) {
-    // TODO: Does this get properly cleaned up?
-    m_owner = &NanMakeWeakPersistent(owner.As<Object>(), (void*)NULL,
-                                     OwnerWeakCB)->persistent;
-    // TODO: Keep this?
-    m_owner->MarkIndependent();
-  }
+  assert(!owner->IsUndefined());
+  m_owner = &NanMakeWeakPersistent(owner.As<Object>(), (void*)NULL,
+                                   OwnerWeakCB)->persistent;
+  m_owner->MarkIndependent();
   
   VALUE wrappedObj = Data_Wrap_Struct(s_wrappedClass, NULL, NULL, this);
   rb_ivar_set(obj, V8_WRAPPER_ID, wrappedObj);
