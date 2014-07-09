@@ -54,7 +54,6 @@ are implemented. Feel free to add issue for any bugs or missing features.
  - Support for Ruby hashes
  - Conversion of JS objects (that aren't wrapped Ruby objects)
  - Support for Ruby structs
- - Support for Ruby class constants
  - Support for Ruby global variables
 
 ## API
@@ -88,11 +87,14 @@ var t = new Time(2014, 7, 2);
 var ZlibInflate = ruby.getClass('Zlip::Inflate');
 ```
 
-  Class methods are exposed as properties of the constructor.
+  Class methods and constants are exposed as properties of the constructor.
 
 ```js
 var Time = ruby.getClass('Time');
 var t = Time.utc(2014, 7, 2);
+
+var File = ruby.getClass('File');
+console.log(File.SEPARATOR); // => '/'
 ```
 
 ### ruby#newInstance(className:String[, …])
@@ -159,18 +161,23 @@ my_func('Stan');
 
 ### ruby#getConstant(name:String)
   
-  Returns the Ruby constant specified by `name`. To get a constant within a module, separate the module and constant with ::. Without the separator, it returns an [Object](http://www.ruby-doc.org/core/Object.html) constant.
+  Returns the Ruby constant specified by `name`. To get a constant within a module or class, separate the module and constant with ::. Without the separator, it returns an [Object](http://www.ruby-doc.org/core/Object.html) constant.
 
 ```ruby
 # const.rb
 module MyMod
   MY_CONST = "abcde"
 end
+
+class MyClass
+  OTHER_CONST = "fghi"
+end
 ```
   
 ```js
 var RUBY_VERSION = ruby.getConstant('RUBY_VERSION');
 console.log(ruby.getConstant('MyMod::MY_CONST')); // => 'abcde'
+console.log(ruby.getConstant('MyClass::OTHER_CONST')); // => 'fghi'
 ```
 
 ## Ruby objects
