@@ -1,12 +1,10 @@
-#pragma once
+#ifndef NORBY_RUBY_OBJECT_H_
+#define NORBY_RUBY_OBJECT_H_
 
 #include <node.h>
 #include <nan.h>
-#include <v8.h>
 #include <ruby.h>
 #include <map>
-
-#include "common.h"
 
 class RubyObject : public node::ObjectWrap
 {
@@ -54,3 +52,5 @@ class RubyObject : public node::ObjectWrap
   static TplMap s_functionTemplates;
   static VALUE s_wrappedClass;
 };
+
+#endif // NORBY_RUBY_OBJECT_H_

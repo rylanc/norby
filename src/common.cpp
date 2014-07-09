@@ -2,11 +2,9 @@
 #include "Ruby.h"
 #include "RubyObject.h"
 #include <node.h>
-#include <cassert>
+#include <vector>
 #include <limits>
-
 #include <iostream>
-using namespace std;
 
 using namespace v8;
 
@@ -17,14 +15,12 @@ Handle<Value> rubyToV8(VALUE val)
 {
   NanEscapableScope();
 
-  log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8" << endl);
+  log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8");
   
-  // TODO: Should we convert Symbols to strings?
-
   int type = TYPE(val);
   switch (type) {
   case T_NONE:
-  case T_NIL: // TODO: Is this right?
+  case T_NIL:
      return NanEscapeScope(NanUndefined());
   case T_FLOAT:
      return NanEscapeScope(NanNew<Number>(RFLOAT_VALUE(val)));
@@ -67,8 +63,13 @@ Handle<Value> rubyToV8(VALUE val)
     else
       return NanEscapeScope(owner);
   }
+  case T_SYMBOL: {
+    VALUE str = rb_id2str(SYM2ID(val));
+    return NanEscapeScope(NanNew<String>(RSTRING_PTR(str), RSTRING_LEN(str)));
+  }
   default:
-    cerr << "Unknown ruby type(" << type << "): " << rb_obj_classname(val) << endl;
+    std::cerr << "Unknown ruby type(" << type << "): " <<
+                 rb_obj_classname(val) << std::endl;
     return NanEscapeScope(NanUndefined());
   }
 }
@@ -77,12 +78,12 @@ VALUE v8ToRuby(Handle<Value> val)
 {
   NanScope();
 
-  log("Converting " << *String::Utf8Value(val) << " to ruby" << endl);
+  log("Converting " << *String::Utf8Value(val) << " to ruby");
 
   if (val->IsUndefined())
-    return Qnil; // TODO: Is this right?
+    return Qnil;
   else if (val->IsNull())
-    return Qnil; // TODO: Is this right?
+    return Qnil;
   else if (val->IsTrue())
     return Qtrue;
   else if (val->IsFalse())
@@ -122,11 +123,12 @@ VALUE v8ToRuby(Handle<Value> val)
         return rubyObj->GetObject();
       }
     }
+    
+    // TODO: Should we wrap objects here?
   }
   
-  // TODO: Should we wrap objects here?
   String::Utf8Value str(val->ToDetailString());
-  cerr << "Unknown v8 type: " << *str << endl;
+  std::cerr << "Unknown v8 type: " << *str << std::endl;
   return Qnil;
 }
 
@@ -138,23 +140,30 @@ Handle<Value> rubyExToV8(VALUE ex)
 
   VALUE msg = rb_funcall(ex, rb_intern("message"), 0);
   Local<String> msgStr = NanNew<String>(RSTRING_PTR(msg), RSTRING_LEN(msg));
+  Local<Value> v8Err;
 
-  // TODO: Do these error constructions work in all node versions?
   VALUE klass = rb_class_of(ex);
   if (klass == rb_eArgError ||
       klass == rb_eLoadError)
-    return NanEscapeScope(Exception::Error(msgStr));
+    v8Err = Exception::Error(msgStr);
   else if (klass == rb_eNameError ||
            klass == rb_eNoMethodError)
-    return NanEscapeScope(Exception::ReferenceError(msgStr));
+    v8Err = Exception::ReferenceError(msgStr);
   else if (klass == rb_eTypeError)
-    return NanEscapeScope(Exception::TypeError(msgStr));
+    v8Err = Exception::TypeError(msgStr);
   else if (klass == rb_eSyntaxError)
-    return NanEscapeScope(Exception::SyntaxError(msgStr));
+    v8Err = Exception::SyntaxError(msgStr);
   else {
-    cerr << "Unknown ruby exception: " << rb_obj_classname(ex) << endl;
-    return NanEscapeScope(Exception::Error(msgStr));
+    std::cerr << "Unknown ruby exception: " <<
+                 rb_obj_classname(ex) << std::endl;
+    v8Err = Exception::Error(msgStr);
   }
+  
+  VALUE backtrace = rb_funcall(ex, rb_intern("backtrace"), 0);
+  Local<Object> errObj = v8Err.As<Object>();
+  errObj->Set(NanNew<String>("rubyStack"), rubyToV8(backtrace));
+  
+  return NanEscapeScope(v8Err);
 }
 
 VALUE RescueCB(VALUE data, VALUE ex)
@@ -183,13 +192,44 @@ VALUE CallV8FromRuby(const Handle<Object> recv,
 
 struct MethodCaller
 {
+  struct Block
+  {
+    Block(Handle<Function> f)
+    {
+      NanAssignPersistent(func, f);
+      dataObj = Data_Wrap_Struct(Ruby::BLOCK_WRAPPER_CLASS, NULL, Free, this);
+    }
+    
+    static VALUE Func(VALUE, VALUE data, int argc, const VALUE* rbArgv)
+    {
+      Block* block;
+      Data_Get_Struct(data, Block, block);
+  
+      Local<Function> fn = NanNew<Function>(block->func);
+      // TODO: Should we store args.This() and call it as the receiver?
+      return CallV8FromRuby(NanGetCurrentContext()->Global(), fn,
+                            argc, rbArgv);
+    }
+    
+    static void Free(void* data)
+    {
+      Block* block = static_cast<Block*>(data);
+      NanDisposePersistent(block->func);
+      delete block;
+    }
+    
+    Persistent<Function> func;
+    VALUE dataObj;
+  };
+  
   inline
   MethodCaller(VALUE o, _NAN_METHOD_ARGS_TYPE args):
-    obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))), rubyArgs(args.Length())
+    obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))), rubyArgs(args.Length()),
+    block(NULL)
   {
     // TODO: Is this right? Is there a way to determine if a block is expected?
     if (args.Length() > 0 && args[args.Length()-1]->IsFunction()) {
-      block = args[args.Length()-1].As<Function>();
+      block = new Block(args[args.Length()-1].As<Function>());
       rubyArgs.resize(args.Length()-1);
     }
     
@@ -200,37 +240,27 @@ struct MethodCaller
   
   VALUE operator()() const
   {
-    log("Calling method: " << rb_obj_classname(obj) << "." <<
-        rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
-    
-    if (block.IsEmpty()) {
-      log(endl);
+    if (block == NULL) {
+      log("Calling method: " << rb_obj_classname(obj) << "." <<
+          rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
     
       return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
     }
     else {
-      log(" and a block" << endl);
+      log("Calling method: " << rb_obj_classname(obj) << "." <<
+          rb_id2name(methodID) << " with " << rubyArgs.size() <<
+          " args and a block");
       
       // TODO: Probably not available in Ruby < 1.9
       return rb_block_call(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0],
-                           RUBY_METHOD_FUNC(BlockFunc), (VALUE)this);
+                           RUBY_METHOD_FUNC(Block::Func), block->dataObj);
     }
-  }
-  
-  static VALUE BlockFunc(VALUE, VALUE data, int argc, const VALUE* rbArgv)
-  {
-    MethodCaller* self = reinterpret_cast<MethodCaller*>(data);
-  
-    // TODO: Should we store args.This() and call it as the receiver?
-    return CallV8FromRuby(NanGetCurrentContext()->Global(), self->block,
-                          argc, rbArgv);
   }
 
   VALUE obj;
   VALUE methodID;
   std::vector<VALUE> rubyArgs;
-  // TODO: Should this be persistent? What if ruby doesn't call yield right away (i.e. Proc.new)?
-  Local<Function> block;
+  Block* block;
 };
 
 Handle<Value> CallRubyFromV8(VALUE recv, _NAN_METHOD_ARGS_TYPE args)
@@ -252,7 +282,7 @@ void DumpRubyArgs(int argc, VALUE* argv)
 #ifdef _DEBUG
   for (int i = 0; i < argc; i++) {
     VALUE str = rb_funcall2(argv[i], rb_intern("to_s"), 0, NULL);
-    cout << i << ": " << StringValueCStr(str) << endl;
+    std::cout << i << ": " << StringValueCStr(str) << std::endl;
   }
 #endif
 }
@@ -266,7 +296,7 @@ void DumpV8Props(Handle<Object> obj)
   for (uint32_t i = 0; i < propNames->Length(); i++) {
     Local<Value> key = propNames->Get(i);
     
-    cout << *String::Utf8Value(key) << endl;
+    std::cout << *String::Utf8Value(key) << std::endl;
   }
 #endif
 }
@@ -277,7 +307,7 @@ void DumpV8Args(_NAN_METHOD_ARGS_TYPE args)
   NanScope();
   
   for (int i = 0; i < args.Length(); i++) {
-    cout << i << ": " << *String::Utf8Value(args[i]) << endl;
+    std::cout << i << ": " << *String::Utf8Value(args[i]) << std::endl;
   }
 #endif
 }

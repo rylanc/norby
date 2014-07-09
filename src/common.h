@@ -1,22 +1,21 @@
-#pragma once
+#ifndef NORBY_COMMON_H_
+#define NORBY_COMMON_H_
 
 #include <nan.h>
 #include <v8.h>
 #include <ruby.h>
 
-#include <vector>
-
 #ifdef _DEBUG
-#define log(x) std::cout << x
+#include <iostream>
+#define log(x) std::cout << x << std::endl
 #else
 #define log(x)
 #endif
 
+// Conversion helpers
 v8::Handle<v8::Value> rubyToV8(VALUE val);
 VALUE v8ToRuby(v8::Handle<v8::Value> val);
 v8::Handle<v8::Value> rubyExToV8(VALUE ex);
-
-VALUE RescueCB(VALUE data, VALUE ex);
 
 template<class F>
 struct SafeCallWrapper
@@ -29,6 +28,9 @@ struct SafeCallWrapper
   }
 };
 
+VALUE RescueCB(VALUE data, VALUE ex);
+
+// Prevents crashes when Ruby throws an exception
 template<class F>
 inline VALUE SafeRubyCall(const F& f, VALUE &ex)
 {
@@ -47,14 +49,11 @@ inline VALUE SafeRubyCall(const F& f, VALUE &ex)
   } \
 }
 
+// Function calling helpers
 VALUE CallV8FromRuby(const v8::Handle<v8::Object> recv,
                      const v8::Handle<v8::Function> callback,
                      int argc, const VALUE* argv);
-#if (NODE_MODULE_VERSION > 0x000B)
-v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, const v8::FunctionCallbackInfo<v8::Value>& args);
-#else
-v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, const v8::Arguments& args);
-#endif
+v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, _NAN_METHOD_ARGS_TYPE args);
 
 #if (NODE_MODULE_VERSION > 0x000B)
 #define EXTERNAL_WRAP(x) v8::External::New(v8::Isolate::GetCurrent(), x)
@@ -70,3 +69,5 @@ v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, const v8::Arguments& args);
 void DumpRubyArgs(int argc, VALUE* argv);
 void DumpV8Props(v8::Handle<v8::Object> obj);
 void DumpV8Args(_NAN_METHOD_ARGS_TYPE args);
+
+#endif // NORBY_COMMON_H_

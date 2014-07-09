@@ -4,22 +4,22 @@ var expect = require('chai').expect,
 describe('.require', function() {
   
   it('shouldn\'t throw on valid file', function() {
-    ruby.require('./test/test.rb');
+    ruby.require('./test/helpers');
   });
   
   it('should throw on invalid file', function() {
-    var fn = function() { ruby.require('./dfgfgnfghjnjhm.rb'); };
+    var fn = function() { ruby.require('./dfgfgnfghjnjhm'); };
     expect(fn).to.throw(Error);
   });
   
   it('should throw a SyntaxError given invalid syntax', function() {
-    var fn = function() { ruby.require('./test/invalid.rb'); };
+    var fn = function() { ruby.require('./test/invalid'); };
     expect(fn).to.throw(SyntaxError);
   });
 });
 
 describe('.getClass', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   
   it('should return a constructor given an existing class name', function() {
     var Returner = ruby.getClass('Returner');
@@ -31,9 +31,9 @@ describe('.getClass', function() {
     expect(fn).to.throw(ReferenceError);
   });
   
-  it('should throw an Error given a non-class constant name', function() {
+  it('should throw an TypeError given a non-class constant name', function() {
     var fn = function() { return ruby.getClass('RUBY_DESCRIPTION'); };
-    expect(fn).to.throw(Error);
+    expect(fn).to.throw(TypeError);
   });
   
   it('should alias to_s to toString', function() {
@@ -70,10 +70,17 @@ describe('.getClass', function() {
     expect(t.month()).to.equal(1);
     expect(t.mday()).to.equal(1);
   });
+  
+  it('should work with module classes', function() {
+    var ModClass = ruby.getClass('MyMod::ModClass');
+    var m = new ModClass;
+    var result = m.call_me();
+    expect(result).to.equal(3.14159);
+  });
 });
 
 describe('.newInstance', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   
   it('should return an instance given an existing class name', function() {
     var r = ruby.newInstance('Returner');
@@ -105,9 +112,9 @@ describe('.eval', function() {
   });
 });
 
-describe('.getFunction', function() {
+describe('.getMethod', function() {
   it('should return a function given a valid name', function() {
-    var non_class_function = ruby.getFunction('non_class_function');
+    var non_class_function = ruby.getMethod('non_class_function');
     expect(non_class_function).to.be.a('function');
     
     var result = non_class_function(4, 8, 23);
@@ -116,7 +123,7 @@ describe('.getFunction', function() {
   });
   
   it('should throw a ReferenceError given an invalid name', function() {
-    var doesntExist = ruby.getFunction('doesntExist');
+    var doesntExist = ruby.getMethod('doesntExist');
     var fn = function() { doesntExist(); };
     expect(fn).to.throw(ReferenceError);
   });

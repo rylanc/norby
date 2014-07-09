@@ -161,3 +161,11 @@ end
 def non_class_function (arg1, arg2, arg3)
   return arg1 + arg2 + arg3
 end
+
+module MyMod
+class ModClass
+  def call_me
+    return 3.14159
+  end
+end
+end

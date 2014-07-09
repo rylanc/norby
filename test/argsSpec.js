@@ -2,7 +2,7 @@ var expect = require('chai').expect,
     ruby = require('../index');
     
 describe('passing arguments', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   var ArgsInspector = ruby.getClass('ArgsInspector');
   
   it('should pass the correct number of arguments', function() {
@@ -137,7 +137,7 @@ describe('passing arguments', function() {
 });
 
 describe('ruby constructor', function() {
-  ruby.require('./test/test.rb');
+  ruby.require('./test/helpers');
   var ClassTester = ruby.getClass('ClassTester');
     
   it('should pass v8 arguments', function() {

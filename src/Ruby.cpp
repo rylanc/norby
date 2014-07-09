@@ -1,24 +1,23 @@
 #include "Ruby.h"
 #include "RubyObject.h"
 #include "common.h"
-
-#include <iostream>
-using namespace std;
+#include <cstring>
+#include <string>
 
 using namespace v8;
 
 Persistent<Function> Ruby::s_getCtor;
+VALUE Ruby::BLOCK_WRAPPER_CLASS;
 
 void Ruby::Init(Handle<Object> module)
 {
-  int argc = 0;
-  char** argv = NULL;
+  static char* argv[] = { (char*)"norby", (char*)"-e", (char*)"" };
 
-  // TODO: Do we need to call this?
-  ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
   ruby_init();
-  ruby_init_loadpath();
+  ruby_options(3, argv);
+  
+  BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
   
   node::AtExit(Cleanup);
   
@@ -28,7 +27,7 @@ void Ruby::Init(Handle<Object> module)
 
 void Ruby::Cleanup(void*)
 {
-  log("Cleaning up!" << endl);
+  log("Cleaning up!");
   RubyObject::Cleanup();
   ruby_cleanup(0);
 }
@@ -42,12 +41,9 @@ NAN_METHOD(Ruby::New)
   
   Local<Object> bindings = NanNew<Object>();
   NODE_SET_METHOD(bindings, "_getClass", GetClass);
-  NODE_SET_METHOD(bindings, "_gcStart", GCStart);
   NODE_SET_METHOD(bindings, "_defineClass", DefineClass);
-  NODE_SET_METHOD(bindings, "require", Require);
   NODE_SET_METHOD(bindings, "eval", Eval);
-  // TODO: Right name?
-  NODE_SET_METHOD(bindings, "getFunction", GetFunction);
+  NODE_SET_METHOD(bindings, "getMethod", GetMethod);
   // TODO: Maybe we should load the constants here and place them in an object?
   NODE_SET_METHOD(bindings, "getConstant", GetConstant);
   
@@ -72,8 +68,21 @@ struct ConstGetter
     NanScope();
 
     Local<String> constName = nameVal->ToString();
-    ID id = rb_intern(*String::Utf8Value(constName));
-    return rb_const_get(rb_cObject, id);
+    String::Utf8Value constStr(constName);
+    
+    ID id;
+    VALUE mod;
+    const char* split = std::strstr(*constStr, "::");
+    if (split) {
+      id = rb_intern(split + 2);
+      mod = rb_const_get(rb_cObject, rb_intern2(*constStr, split - *constStr));
+    }
+    else {
+      id = rb_intern2(*constStr, constStr.length());
+      mod = rb_cObject;
+    }
+
+    return rb_const_get(mod, id);
   }
 
   Handle<Value> nameVal;
@@ -90,20 +99,11 @@ NAN_METHOD(Ruby::GetClass)
   if (TYPE(klass) != T_CLASS) {
     std::string msg(*String::Utf8Value(args[0]));
     msg.append(" is not a class");
-    // TODO: TypeError?
-    NanThrowError(msg.c_str());
+    NanThrowTypeError(msg.c_str());
     NanReturnUndefined();
   }
   
   NanReturnValue(RubyObject::GetClass(klass));
-}
-
-NAN_METHOD(Ruby::GCStart)
-{
-  NanScope();
-  rb_gc_start();
-
-  NanReturnUndefined();
 }
 
 struct ClassDefiner
@@ -126,7 +126,7 @@ NAN_METHOD(Ruby::DefineClass)
   NanScope();
 
   Local<String> name = args[0]->ToString();
-  log("Inherit called for " << *String::Utf8Value(name) << endl);
+  log("Inherit called for " << *String::Utf8Value(name));
 
   VALUE super;
   SAFE_RUBY_CALL(super, ConstGetter(args[1]));
@@ -134,28 +134,6 @@ NAN_METHOD(Ruby::DefineClass)
   SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
   
   NanReturnValue(RubyObject::GetClass(klass));
-}
-
-struct RequireCaller
-{
-  RequireCaller(const char* n) : name(n) {}
-  VALUE operator()() const
-  {
-    return rb_require(name);
-  }
-
-  const char* name;
-};
-
-NAN_METHOD(Ruby::Require)
-{
-  NanScope();
-
-  Local<String> name = args[0]->ToString();
-  VALUE res;
-  SAFE_RUBY_CALL(res, RequireCaller(*String::Utf8Value(name)));
-
-  NanReturnValue(rubyToV8(res));
 }
 
 struct EvalCaller
@@ -180,7 +158,6 @@ NAN_METHOD(Ruby::Eval)
   NanReturnValue(rubyToV8(res));
 }
 
-// TODO: Can this be combined with RubyObject::CallMethod? Maybe rename?
 NAN_METHOD(CallMethod)
 {
   NanScope();
@@ -188,7 +165,7 @@ NAN_METHOD(CallMethod)
 }
 
 // TODO: Should this throw immediately if the function doesnt exist?
-NAN_METHOD(Ruby::GetFunction)
+NAN_METHOD(Ruby::GetMethod)
 {
   NanScope();
 
