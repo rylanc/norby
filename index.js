@@ -62,7 +62,6 @@ module.exports.inherits = function(ctor, superName) {
 };
 
 module.exports.require = bindings.getMethod('require');
-//module.exports.eval = bindings.eval;
 module.exports.eval = bindings.getMethod('eval');
 module.exports.getMethod = bindings.getMethod;
 module.exports.getConstant = bindings.getConstant;
