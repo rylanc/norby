@@ -47,12 +47,12 @@ Local<Function> RubyObject::GetClass(VALUE klass)
     VALUE methods = rb_class_public_instance_methods(1, &trueArg, klass);
     for (int i = 0; i < RARRAY_LEN(methods); i++) {
       ID methodID = SYM2ID(rb_ary_entry(methods, i));
+      Local<String> methodName = NanNew<String>(rb_id2name(methodID));
 
       Local<FunctionTemplate> methodTemplate =
         NanNew<FunctionTemplate>(CallInstanceMethod,
                                  EXTERNAL_WRAP((void*)methodID));
-      tpl->PrototypeTemplate()->Set(rb_id2name(methodID),
-                                    methodTemplate->GetFunction());
+      tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
     }
     
     tpl->PrototypeTemplate()->SetInternalFieldCount(1);
@@ -61,10 +61,11 @@ Local<Function> RubyObject::GetClass(VALUE klass)
     methods = rb_obj_singleton_methods(1, &trueArg, klass);
     for (int i = 0; i < RARRAY_LEN(methods); i++) {
       ID methodID = SYM2ID(rb_ary_entry(methods, i));
+      Local<String> methodName = NanNew<String>(rb_id2name(methodID));
 
       Local<FunctionTemplate> methodTemplate =
         NanNew<FunctionTemplate>(CallClassMethod, EXTERNAL_WRAP((void*)methodID));
-      tpl->Set(rb_id2name(methodID), methodTemplate->GetFunction());
+      tpl->Set(methodName, methodTemplate->GetFunction());
     }
     
     // Constants
@@ -73,7 +74,7 @@ Local<Function> RubyObject::GetClass(VALUE klass)
       ID constantID = SYM2ID(rb_ary_entry(constants, i));
       
       VALUE val = rb_const_get(klass, constantID);
-      tpl->Set(rb_id2name(constantID), rubyToV8(val));
+      tpl->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
     }
     
     Local<FunctionTemplate> defMethTpl = NanNew<FunctionTemplate>(DefineMethod);
