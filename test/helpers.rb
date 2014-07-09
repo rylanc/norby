@@ -163,9 +163,10 @@ def non_class_function (arg1, arg2, arg3)
 end
 
 module MyMod
-class ModClass
-  def call_me
-    return 3.14159
+  MY_CONST = "abcde"
+  class ModClass
+    def call_me
+      return 3.14159
+    end
   end
-end
 end

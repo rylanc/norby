@@ -130,12 +130,19 @@ describe('.getMethod', function() {
 });
 
 describe('.getConstant', function() {
-  it('should return a value given a valid name', function() {
+  it('should return Object constants', function() {
     var TRUE = ruby.getConstant('TRUE');
     expect(TRUE).to.be.true;
     
     var FALSE = ruby.getConstant('FALSE');
     expect(FALSE).to.be.false;
+  });
+  
+  it('should return module constants', function() {
+    ruby.require('./test/helpers');
+    
+    var MY_CONST = ruby.getConstant('MyMod::MY_CONST');
+    expect(MY_CONST).to.equal('abcde');
   });
   
   it('should throw a ReferenceError given an invalid name', function() {
