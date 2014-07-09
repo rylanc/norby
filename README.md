@@ -43,15 +43,15 @@ console.log(t); // => '2014-07-02 00:00:00 -0400'
 ## What's missing
 
 norby is currently in an early beta state. Check back for updates as features
-are implemented.
+are implemented. Feel free to add issue for any bugs or missing features.
 
  - Windows support. node.js is built with Visual Studio while most Windows Ruby
    installers use [MinGW](http://www.mingw.org). It may work if you build Ruby
    with VS, but I haven't tried it yet.
  - Support for Ruby version 1.8.X
+ - Support for Ruby modules (as well as including/extending)
  - Support for Ruby hashes
  - Conversion of JS objects (that aren't wrapped Ruby objects)
- - Support for Ruby modules (as well as including/extending)
  - Support for Ruby structs
  - Support for Ruby class constants
  - Support for Ruby global variables
