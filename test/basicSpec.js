@@ -40,18 +40,18 @@ describe('.getClass', function() {
     var Time = ruby.getClass('Time');
     expect(Time).to.respondTo('toString');
     
-    var t = new Time(2001, 2, 3);
+    var t = Time.utc(2001, 2, 3);
     var result = t.toString();
-    expect(result).to.equal('2001-02-03 00:00:00 -0500');
+    expect(result).to.equal('2001-02-03 00:00:00 UTC');
   });
   
   it('should alias inspect() to inspect(depth)', function() {
     var Time = ruby.getClass('Time');
     expect(Time).to.respondTo('inspect');
     
-    var t = new Time(2001, 2, 3);
+    var t = Time.utc(2001, 2, 3);
     var result = t.inspect(2);
-    expect(result).to.equal('2001-02-03 00:00:00 -0500');
+    expect(result).to.equal('2001-02-03 00:00:00 UTC');
   });
   
   it('should expose class methods', function() {
