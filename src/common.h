@@ -12,11 +12,10 @@
 #define log(x)
 #endif
 
+// Conversion helpers
 v8::Handle<v8::Value> rubyToV8(VALUE val);
 VALUE v8ToRuby(v8::Handle<v8::Value> val);
 v8::Handle<v8::Value> rubyExToV8(VALUE ex);
-
-VALUE RescueCB(VALUE data, VALUE ex);
 
 template<class F>
 struct SafeCallWrapper
@@ -29,6 +28,9 @@ struct SafeCallWrapper
   }
 };
 
+VALUE RescueCB(VALUE data, VALUE ex);
+
+// Prevents crashes when Ruby throws an exception
 template<class F>
 inline VALUE SafeRubyCall(const F& f, VALUE &ex)
 {
@@ -47,6 +49,7 @@ inline VALUE SafeRubyCall(const F& f, VALUE &ex)
   } \
 }
 
+// Function calling helpers
 VALUE CallV8FromRuby(const v8::Handle<v8::Object> recv,
                      const v8::Handle<v8::Function> callback,
                      int argc, const VALUE* argv);

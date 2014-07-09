@@ -17,12 +17,10 @@ Handle<Value> rubyToV8(VALUE val)
 
   log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8");
   
-  // TODO: Should we convert Symbols to strings?
-
   int type = TYPE(val);
   switch (type) {
   case T_NONE:
-  case T_NIL: // TODO: Is this right?
+  case T_NIL:
      return NanEscapeScope(NanUndefined());
   case T_FLOAT:
      return NanEscapeScope(NanNew<Number>(RFLOAT_VALUE(val)));
@@ -83,9 +81,9 @@ VALUE v8ToRuby(Handle<Value> val)
   log("Converting " << *String::Utf8Value(val) << " to ruby");
 
   if (val->IsUndefined())
-    return Qnil; // TODO: Is this right?
+    return Qnil;
   else if (val->IsNull())
-    return Qnil; // TODO: Is this right?
+    return Qnil;
   else if (val->IsTrue())
     return Qtrue;
   else if (val->IsFalse())
@@ -125,9 +123,10 @@ VALUE v8ToRuby(Handle<Value> val)
         return rubyObj->GetObject();
       }
     }
+    
+    // TODO: Should we wrap objects here?
   }
   
-  // TODO: Should we wrap objects here?
   String::Utf8Value str(val->ToDetailString());
   std::cerr << "Unknown v8 type: " << *str << std::endl;
   return Qnil;
