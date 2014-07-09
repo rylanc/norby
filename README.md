@@ -1,7 +1,7 @@
 norby
 =====
 
-Call your Ruby classes from node.js
+Call your Ruby libraries from node.js
 
 ## To install
 
