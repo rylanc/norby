@@ -8,7 +8,7 @@ Call your Ruby classes from node.js
 Prerequisites:
 
     * node.js >= 0.10
-    * ruby > = 1.9
+    * ruby >= 1.9
 
 Install using npm:
 
@@ -19,7 +19,8 @@ npm install norby
 Compile from repository:
 
 ```sh
-git clone REPO
+git clone https://github.com/rylanc/norby.git
+cd norby
 npm install
 ```
 
@@ -249,7 +250,7 @@ Are converted to JS numbers.
 #### `Fixnum`s
 
 Are converted to JS numbers. Keep in mind that JS stores numbers as double
-precision floating point numbers, meaning that `FIxnum`s (and `Bignum`s) will
+precision floating point numbers, meaning that `Fixnum`s (and `Bignum`s) will
 lose precision above 2<sup>53</sup>.
 
 #### `Bignum`s
