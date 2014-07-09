@@ -16,11 +16,11 @@ void Ruby::Init(Handle<Object> module)
   RUBY_INIT_STACK;
   ruby_init();
   ruby_options(3, argv);
-  
+
   BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
-  
+
   node::AtExit(Cleanup);
-  
+
   module->Set(NanNew<String>("exports"),
               NanNew<FunctionTemplate>(New)->GetFunction());
 }
@@ -35,10 +35,10 @@ void Ruby::Cleanup(void*)
 NAN_METHOD(Ruby::New)
 {
   NanScope();
-  
+
   assert(args[0]->IsFunction());
   NanAssignPersistent(s_getCtor, args[0].As<Function>());
-  
+
   Local<Object> bindings = NanNew<Object>();
   NODE_SET_METHOD(bindings, "_getClass", GetClass);
   NODE_SET_METHOD(bindings, "_defineClass", DefineClass);
@@ -46,14 +46,14 @@ NAN_METHOD(Ruby::New)
   NODE_SET_METHOD(bindings, "getMethod", GetMethod);
   // TODO: Maybe we should load the constants here and place them in an object?
   NODE_SET_METHOD(bindings, "getConstant", GetConstant);
-  
+
   NanReturnValue(bindings);
 }
 
 Local<Function> Ruby::GetCtor(Local<Function> rubyClass)
 {
   NanEscapableScope();
-  
+
   Local<Function> getCtor = NanNew<Function>(s_getCtor);
   Handle<Value> argv[] = { rubyClass };
   return NanEscapeScope(NanMakeCallback(NanGetCurrentContext()->Global(),
@@ -69,7 +69,7 @@ struct ConstGetter
 
     Local<String> constName = nameVal->ToString();
     String::Utf8Value constStr(constName);
-    
+
     ID id;
     VALUE mod;
     const char* split = std::strstr(*constStr, "::");
@@ -95,14 +95,14 @@ NAN_METHOD(Ruby::GetClass)
 
   VALUE klass;
   SAFE_RUBY_CALL(klass, ConstGetter(args[0]));
-  
+
   if (TYPE(klass) != T_CLASS) {
     std::string msg(*String::Utf8Value(args[0]));
     msg.append(" is not a class");
     NanThrowTypeError(msg.c_str());
     NanReturnUndefined();
   }
-  
+
   NanReturnValue(RubyObject::GetClass(klass));
 }
 
@@ -112,11 +112,11 @@ struct ClassDefiner
   VALUE operator()() const
   {
     NanScope();
-    
+
     Local<String> className = nameVal->ToString();
     return rb_define_class(*String::Utf8Value(className), super);
   }
-  
+
   Handle<Value> nameVal;
   VALUE super;
 };
@@ -125,14 +125,13 @@ NAN_METHOD(Ruby::DefineClass)
 {
   NanScope();
 
-  Local<String> name = args[0]->ToString();
-  log("Inherit called for " << *String::Utf8Value(name));
+  log("Inherit called for " << *String::Utf8Value(args[0]));
 
   VALUE super;
   SAFE_RUBY_CALL(super, ConstGetter(args[1]));
   VALUE klass;
   SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
-  
+
   NanReturnValue(RubyObject::GetClass(klass));
 }
 
@@ -184,7 +183,7 @@ NAN_METHOD(Ruby::GetConstant)
 
   VALUE constant;
   SAFE_RUBY_CALL(constant, ConstGetter(args[0]));
-  
+
   // TODO: Should we allow getting classes this way? Maybe throw an exception?
   NanReturnValue(rubyToV8(constant));
 }
