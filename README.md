@@ -84,7 +84,7 @@ var t = new Time(2014, 7, 2);
   To get a class within a module, separate the module and class with `::`.
   
 ```js
-var ZlibInflate = ruby.getClass('Zlip::Inflate');
+var ZlibInflate = ruby.getClass('Zlib::Inflate');
 ```
 
   Class methods and constants are exposed as properties of the constructor.
