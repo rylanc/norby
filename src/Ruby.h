@@ -20,8 +20,6 @@ class Ruby : public node::ObjectWrap
   static NAN_METHOD(New);
   static NAN_METHOD(GetClass);
   static NAN_METHOD(DefineClass);
-  static NAN_METHOD(Require);
-  static NAN_METHOD(Eval);
   static NAN_METHOD(GetMethod);
   static NAN_METHOD(GetConstant);
 
