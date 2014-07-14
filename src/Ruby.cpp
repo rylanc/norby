@@ -42,7 +42,6 @@ NAN_METHOD(Ruby::New)
   Local<Object> bindings = NanNew<Object>();
   NODE_SET_METHOD(bindings, "_getClass", GetClass);
   NODE_SET_METHOD(bindings, "_defineClass", DefineClass);
-  NODE_SET_METHOD(bindings, "eval", Eval);
   NODE_SET_METHOD(bindings, "getMethod", GetMethod);
   // TODO: Maybe we should load the constants here and place them in an object?
   NODE_SET_METHOD(bindings, "getConstant", GetConstant);
@@ -134,28 +133,6 @@ NAN_METHOD(Ruby::DefineClass)
   SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
 
   NanReturnValue(RubyObject::GetClass(klass));
-}
-
-struct EvalCaller
-{
-  EvalCaller(const char* s) : str(s) {}
-  VALUE operator()() const
-  {
-    return rb_eval_string(str);
-  }
-
-  const char* str;
-};
-
-NAN_METHOD(Ruby::Eval)
-{
-  NanScope();
-
-  Local<String> str = args[0]->ToString();
-  VALUE res;
-  SAFE_RUBY_CALL(res, EvalCaller(*String::Utf8Value(str)));
-
-  NanReturnValue(rubyToV8(res));
 }
 
 NAN_METHOD(CallMethod)
