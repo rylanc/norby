@@ -21,11 +21,12 @@ Local<Object> RubyModule::ToV8(VALUE mod)
     
     Local<ObjectTemplate> tpl = NanNew<ObjectTemplate>();
     tpl->SetInternalFieldCount(1);
+    v8Mod = tpl->NewInstance();
+    NanSetInternalFieldPointer(v8Mod, 0, (void*)mod);
   
-    // TODO: Should we create the instance here or after we add the methods? Does it matter?
     // Class methods
-    AddMethods(tpl, rb_class_public_instance_methods(0, NULL, CLASS_OF(mod)));
-    AddMethods(tpl, rb_obj_singleton_methods(0, NULL, mod));
+    AddMethods(v8Mod, rb_class_public_instance_methods(0, NULL, CLASS_OF(mod)));
+    AddMethods(v8Mod, rb_obj_singleton_methods(0, NULL, mod));
   
     // Constants
     VALUE constants = rb_mod_constants(0, NULL, mod);
@@ -33,7 +34,7 @@ Local<Object> RubyModule::ToV8(VALUE mod)
       ID constantID = SYM2ID(rb_ary_entry(constants, i));
       
       VALUE val = rb_const_get(mod, constantID);
-      tpl->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
+      v8Mod->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
     }
   
     if (TYPE(mod) == T_CLASS) {
@@ -41,16 +42,11 @@ Local<Object> RubyModule::ToV8(VALUE mod)
       ID newID = rb_intern("new");
       Local<FunctionTemplate> newTemplate =
         NanNew<FunctionTemplate>(CallNew, EXTERNAL_WRAP((void*)newID));
-      tpl->Set(NanNew<String>("new"), newTemplate->GetFunction());
+      v8Mod->Set(NanNew<String>("new"), newTemplate->GetFunction());
     
       Local<FunctionTemplate> defMethTpl = NanNew<FunctionTemplate>(DefineMethod);
-      tpl->Set(NanNew<String>("_defineMethod"), defMethTpl->GetFunction());
-    }
-  
-    v8Mod = tpl->NewInstance();
-    NanSetInternalFieldPointer(v8Mod, 0, (void*)mod);
-    
-    if (TYPE(mod) == T_CLASS) {
+      v8Mod->Set(NanNew<String>("_defineMethod"), defMethTpl->GetFunction());
+      
       Handle<Value> argv[] = { v8Mod };
       Local<Function> createCtor = NanNew<Function>(s_createCtor);
       v8Mod = NanMakeCallback(NanGetCurrentContext()->Global(),
@@ -76,7 +72,7 @@ Local<Object> RubyModule::ToV8(VALUE mod)
   return NanEscapeScope(v8Mod);
 }
 
-inline void RubyModule::AddMethods(Handle<ObjectTemplate> tpl, VALUE methods)
+inline void RubyModule::AddMethods(Handle<Object> tpl, VALUE methods)
 {
   for (int i = 0; i < RARRAY_LEN(methods); i++) {
     ID methodID = SYM2ID(rb_ary_entry(methods, i));

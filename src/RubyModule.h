@@ -17,7 +17,7 @@ class RubyModule
 
  private:
  
-  static void AddMethods(v8::Handle<v8::ObjectTemplate> tpl, VALUE methods);
+  static void AddMethods(v8::Handle<v8::Object> tpl, VALUE methods);
   
   static NAN_METHOD(CallMethod);
   static NAN_METHOD(CallNew);
