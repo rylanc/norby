@@ -50,7 +50,7 @@ are implemented. Feel free to add issue for any bugs or missing features.
    installers use [MinGW](http://www.mingw.org). It may work if you build Ruby
    with VS, but I haven't tried it yet.
  - Support for Ruby version 1.8.X
- - Support for Ruby modules (as well as including/extending)
+ - Support for Ruby including/extending
  - Support for Ruby hashes
  - Conversion of JS objects (that aren't wrapped Ruby objects)
  - Support for Ruby structs
@@ -65,11 +65,11 @@ are implemented. Feel free to add issue for any bugs or missing features.
 ### ruby#require(name:String)
 
   Calls Ruby's [require](http://www.ruby-doc.org/core/Kernel.html#method-i-require)
-  function with the specified `name`.
+  method with the specified `name`.
   
-### ruby#eval(code:String)
-  
-  Evaluates the Ruby expression(s) in `code`.
+### ruby#eval(code:String [, binding:Binding [, filename:String [, lineno:Number]]])
+  Calls Ruby's [eval](http://www.ruby-doc.org/core/Kernel.html#method-i-eval) method
+  with the specified parameters.
 
 ### ruby#getClass(name:String)
 
@@ -97,7 +97,7 @@ var File = ruby.getClass('File');
 console.log(File.SEPARATOR); // => '/'
 ```
 
-### ruby#newInstance(className:String[, …])
+### ruby#newInstance(className:String [, …])
 
   Returns a new instance of a Ruby object specified by `className`. Any
   additional arguments will be passed on to the class's   `new` method.
@@ -161,7 +161,7 @@ my_func('Stan');
 
 ### ruby#getConstant(name:String)
   
-  Returns the Ruby constant specified by `name`. To get a constant within a module or class, separate the module and constant with ::. Without the separator, it returns an [Object](http://www.ruby-doc.org/core/Object.html) constant.
+  Returns the Ruby constant specified by `name`. To get a constant within a module or class, separate the module and constant with ::. Without the separator, it returns an [Object](http://www.ruby-doc.org/core/Object.html) constant. `getConstant` can also be used to return modules.
 
 ```ruby
 # const.rb
@@ -175,6 +175,7 @@ end
 ```
   
 ```js
+ruby.require('./const');
 var RUBY_VERSION = ruby.getConstant('RUBY_VERSION');
 console.log(ruby.getConstant('MyMod::MY_CONST')); // => 'abcde'
 console.log(ruby.getConstant('MyClass::OTHER_CONST')); // => 'fghi'
@@ -217,6 +218,31 @@ var pat = new Regexp('.at');
 pat.match('cat', function() {
   console.log('match!');
 }); // => 'match!'
+```
+
+## Ruby Modules
+
+To retrieve Ruby modules, call `ruby#getConstant`. Modules are returned as JS objects
+with their class methods and constants as properties.
+
+```ruby
+# mod.rb
+
+module MyMod
+  MY_CONST = "abcde"
+  
+  def MyMod.say_hi
+    puts "Hello"
+  end
+end
+```
+
+```js
+ruby.require('./mod');
+var MyMod = ruby.getConstant('MyMod');
+
+console.log(MyMod.MY_CONST); // => 'abcde'
+MyMod.say_hi(); // => 'Hello'
 ```
 
 ## Type conversion
