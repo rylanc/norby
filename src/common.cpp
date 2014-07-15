@@ -53,9 +53,9 @@ Handle<Value> rubyToV8(VALUE val)
   case T_DATA: {
     Local<Object> owner = RubyObject::RubyUnwrap(val);
     if (owner.IsEmpty()) {
-      // TODO: This is confusing
-      VALUE klass = CLASS_OF(val);
-      owner = Ruby::WrapExisting(RubyModule::Wrap(klass));
+      owner = NanNew<Object>();
+      Local<Object> ctor = RubyModule::ToV8(CLASS_OF(val));
+      owner->SetPrototype(ctor->Get(NanNew<String>("prototype")));
       owner->Set(NanNew<String>("_rubyObj"), RubyObject::ToV8(val, owner));
     }
     
@@ -66,7 +66,8 @@ Handle<Value> rubyToV8(VALUE val)
     return NanEscapeScope(NanNew<String>(RSTRING_PTR(str), RSTRING_LEN(str)));
   }
   case T_MODULE:
-    return NanEscapeScope(RubyModule::Wrap(val));
+  case T_CLASS:
+    return NanEscapeScope(RubyModule::ToV8(val));
   default:
     std::cerr << "Unknown ruby type(" << type << "): " <<
                  rb_obj_classname(val) << std::endl;

@@ -29,8 +29,27 @@ describe('Ruby modules', function() {
     expect(MyMod.MY_CONST).to.equal('abcde');
   });
   
-  it.skip('should expose module classes', function() {
+  it('should expose module classes', function() {
     var MyMod = ruby.getConstant('MyMod');
     expect(MyMod.ModClass).to.be.a('function');
+    
+    var mc = new MyMod.ModClass();
+    var result = mc.call_me();
+    expect(result).to.equal(3.14159);
+  });
+  
+  it.skip('should alias inspect() to inspect(depth)', function() {
+    var MyMod = ruby.getConstant('MyMod');
+    expect(MyMod).itself.to.respondTo('inspect');
+    
+    var result = MyMod.inspect(2);
+    expect(result).to.equal('MyMod');
+  });
+  
+  it('should return the same object for subsequent calls', function() {
+    var M1 = ruby.getConstant('MyMod');
+    var M2 = ruby.getConstant('MyMod');
+    
+    expect(M1).to.equal(M2);
   });
 });

@@ -6,43 +6,74 @@
 
 using namespace v8;
 
-Local<Object> RubyModule::Wrap(VALUE mod)
+RubyModule::ObjMap RubyModule::s_objCache;
+Persistent<Function> RubyModule::s_createCtor;
+
+Local<Object> RubyModule::ToV8(VALUE mod)
 {
   NanEscapableScope();
+  assert(TYPE(mod) == T_MODULE || TYPE(mod) == T_CLASS);
   
-  Local<ObjectTemplate> tpl = NanNew<ObjectTemplate>();
-  tpl->SetInternalFieldCount(1);
-  
-  // TODO: Should we create the instance here or after we add the methods? Does it matter?
-  // Class methods
-  AddMethods(tpl, rb_class_public_instance_methods(0, NULL, CLASS_OF(mod)));
-  AddMethods(tpl, rb_obj_singleton_methods(0, NULL, mod));
-  
-  // Constants
-  VALUE constants = rb_mod_constants(0, NULL, mod);
-  for (int i = 0; i < RARRAY_LEN(constants); i++) {
-    ID constantID = SYM2ID(rb_ary_entry(constants, i));
-      
-    VALUE val = rb_const_get(mod, constantID);
-    tpl->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
-  }
-  
-  if (TYPE(mod) == T_CLASS) {
-    // TODO: new or newInstance?
-    ID newID = rb_intern("new");
-    log("Creating a class: " << mod << " nid: " << newID);
-    Local<FunctionTemplate> newTemplate =
-      NanNew<FunctionTemplate>(CallNew, EXTERNAL_WRAP((void*)newID));
-    tpl->Set(NanNew<String>("new"), newTemplate->GetFunction());
+  Local<Object> v8Mod;
+  ObjMap::iterator it = s_objCache.find(mod);
+  if (it == s_objCache.end()) {
+    log("Creating new module/class: " << rb_class2name(mod));
     
-    Local<FunctionTemplate> defMethTpl = NanNew<FunctionTemplate>(DefineMethod);
-    tpl->Set(NanNew<String>("_defineMethod"), defMethTpl->GetFunction());
+    Local<ObjectTemplate> tpl = NanNew<ObjectTemplate>();
+    tpl->SetInternalFieldCount(1);
+  
+    // TODO: Should we create the instance here or after we add the methods? Does it matter?
+    // Class methods
+    AddMethods(tpl, rb_class_public_instance_methods(0, NULL, CLASS_OF(mod)));
+    AddMethods(tpl, rb_obj_singleton_methods(0, NULL, mod));
+  
+    // Constants
+    VALUE constants = rb_mod_constants(0, NULL, mod);
+    for (int i = 0; i < RARRAY_LEN(constants); i++) {
+      ID constantID = SYM2ID(rb_ary_entry(constants, i));
+      
+      VALUE val = rb_const_get(mod, constantID);
+      tpl->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
+    }
+  
+    if (TYPE(mod) == T_CLASS) {
+      // TODO: new or newInstance?
+      ID newID = rb_intern("new");
+      Local<FunctionTemplate> newTemplate =
+        NanNew<FunctionTemplate>(CallNew, EXTERNAL_WRAP((void*)newID));
+      tpl->Set(NanNew<String>("new"), newTemplate->GetFunction());
+    
+      Local<FunctionTemplate> defMethTpl = NanNew<FunctionTemplate>(DefineMethod);
+      tpl->Set(NanNew<String>("_defineMethod"), defMethTpl->GetFunction());
+    }
+  
+    v8Mod = tpl->NewInstance();
+    NanSetInternalFieldPointer(v8Mod, 0, (void*)mod);
+    
+    if (TYPE(mod) == T_CLASS) {
+      Handle<Value> argv[] = { v8Mod };
+      Local<Function> createCtor = NanNew<Function>(s_createCtor);
+      v8Mod = NanMakeCallback(NanGetCurrentContext()->Global(),
+                              createCtor, 1, argv).As<Object>();
+    }
+                           
+#if (NODE_MODULE_VERSION > 0x000B)
+    s_objCache[mod].Reset(v8::Isolate::GetCurrent(), v8Mod);
+#else
+    NanAssignPersistent(s_objCache[mod], v8Mod);
+#endif
+  }
+  else {
+    log("Getting existing module/class: " << rb_class2name(mod));
+    
+#if (NODE_MODULE_VERSION > 0x000B)    
+    v8Mod = Local<Object>::New(v8::Isolate::GetCurrent(), it->second);
+#else
+    v8Mod = NanNew<Object>(it->second);
+#endif
   }
   
-  Local<Object> obj = tpl->NewInstance();
-  NanSetInternalFieldPointer(obj, 0, (void*)mod);
-
-  return NanEscapeScope(obj);
+  return NanEscapeScope(v8Mod);
 }
 
 inline void RubyModule::AddMethods(Handle<ObjectTemplate> tpl, VALUE methods)

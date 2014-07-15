@@ -12,8 +12,6 @@ class Ruby : public node::ObjectWrap
  
   static void Init(v8::Handle<v8::Object> module);
   static void Cleanup(void*);
-
-  static v8::Local<v8::Object> WrapExisting(v8::Local<v8::Object> rubyClass);
  
  private:
   
@@ -22,8 +20,6 @@ class Ruby : public node::ObjectWrap
   static NAN_METHOD(DefineClass);
   static NAN_METHOD(GetMethod);
   static NAN_METHOD(GetConstant);
-
-  static v8::Persistent<v8::Function> s_wrapExisting;
   
   // Don't instantiate
   Ruby();

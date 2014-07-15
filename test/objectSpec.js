@@ -21,4 +21,13 @@ describe('Ruby objects', function() {
     var result = t.inspect(2);
     expect(result).to.equal('2001-02-03 00:00:00 UTC');
   });
+  
+  it('should have a working .class method', function() {
+    var T1 = ruby.getClass('Time');
+    var t = new T1();
+    var T2 = t.class();
+    
+    expect(T1).to.equal(T2);
+    expect(t).to.be.an.instanceof(T2);
+  });
 });

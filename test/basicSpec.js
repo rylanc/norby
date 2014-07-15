@@ -42,6 +42,13 @@ describe('.getClass', function() {
     var result = m.call_me();
     expect(result).to.equal(3.14159);
   });
+  
+  it('should return the same ctor for subsequent calls', function() {
+    var T1 = ruby.getClass('Time');
+    var T2 = ruby.getClass('Time');
+    
+    expect(T1).to.equal(T2);
+  });
 });
 
 describe('.newInstance', function() {
@@ -61,6 +68,12 @@ describe('.newInstance', function() {
   it('should properly forward the given arguments', function() {
     var tester = ruby.newInstance('ClassTester', 'hello');
     expect(tester.get_val()).to.equal('hello');
+  });
+  
+  it('should work with instanceof', function() {
+    var ClassTester = ruby.getClass('ClassTester');
+    var tester = ruby.newInstance('ClassTester', 'hello');
+    expect(tester).to.be.an.instanceof(ClassTester);
   });
 });
 

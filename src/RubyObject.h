@@ -45,10 +45,11 @@ class RubyObject : public node::ObjectWrap
   // The pure JS object that holds the reference to this
   v8::Persistent<v8::Object>* m_owner;
 #if (NODE_MODULE_VERSION > 0x000B)
-  typedef std::map<ID, v8::CopyablePersistentTraits<v8::FunctionTemplate>::CopyablePersistent> TplMap;
+  typedef std::map<VALUE, v8::CopyablePersistentTraits<v8::FunctionTemplate>::CopyablePersistent> TplMap;
 #else
-  typedef std::map<ID, v8::Persistent<v8::FunctionTemplate> > TplMap;
+  typedef std::map<VALUE, v8::Persistent<v8::FunctionTemplate> > TplMap;
 #endif
+  // TODO: Still needed?
   static TplMap s_functionTemplates;
   static VALUE s_wrappedClass;
 };

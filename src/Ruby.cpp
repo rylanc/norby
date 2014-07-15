@@ -7,7 +7,6 @@
 
 using namespace v8;
 
-Persistent<Function> Ruby::s_wrapExisting;
 VALUE Ruby::BLOCK_WRAPPER_CLASS;
 
 void Ruby::Init(Handle<Object> module)
@@ -36,9 +35,14 @@ void Ruby::Cleanup(void*)
 NAN_METHOD(Ruby::New)
 {
   NanScope();
-
-  assert(args[0]->IsFunction());
-  NanAssignPersistent(s_wrapExisting, args[0].As<Function>());
+  
+  assert(args[0]->IsObject());
+  Local<Object> ctors = args[0].As<Object>();
+  
+  Local<Function> createCtor =
+    ctors->Get(NanNew<String>("createCtor")).As<Function>();
+  assert(createCtor->IsFunction());
+  RubyModule::SetCreateCtor(createCtor);
 
   Local<Object> bindings = NanNew<Object>();
   NODE_SET_METHOD(bindings, "_getClass", GetClass);
@@ -48,17 +52,6 @@ NAN_METHOD(Ruby::New)
   NODE_SET_METHOD(bindings, "getConstant", GetConstant);
 
   NanReturnValue(bindings);
-}
-
-Local<Object> Ruby::WrapExisting(Local<Object> rubyClass)
-{
-  NanEscapableScope();
-  
-  Local<Function> wrapExisting = NanNew<Function>(s_wrapExisting);
-  Handle<Value> argv[] = { rubyClass };
-  
-  return NanEscapeScope(NanMakeCallback(NanGetCurrentContext()->Global(),
-                                        wrapExisting, 1, argv).As<Object>());
 }
 
 struct ConstGetter
@@ -105,7 +98,7 @@ NAN_METHOD(Ruby::GetClass)
     NanReturnUndefined();
   }
 
-  NanReturnValue(RubyModule::Wrap(klass));
+  NanReturnValue(RubyModule::ToV8(klass));
 }
 
 struct ClassDefiner
@@ -134,7 +127,7 @@ NAN_METHOD(Ruby::DefineClass)
   VALUE klass;
   SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
 
-  NanReturnValue(RubyModule::Wrap(klass));
+  NanReturnValue(RubyModule::ToV8(klass));
 }
 
 NAN_METHOD(CallMethod)
