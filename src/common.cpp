@@ -53,6 +53,7 @@ Handle<Value> rubyToV8(VALUE val)
   case T_DATA: {
     Local<Object> owner = RubyObject::RubyUnwrap(val);
     if (owner.IsEmpty()) {
+      // TODO: This is confusing
       VALUE klass = CLASS_OF(val);
       owner = Ruby::WrapExisting(RubyModule::Wrap(klass));
       owner->Set(NanNew<String>("_rubyObj"), RubyObject::ToV8(val, owner));
@@ -109,11 +110,19 @@ VALUE v8ToRuby(Handle<Value> val)
     return UINT2NUM(val->Uint32Value());
   else if (val->IsNumber())
     return rb_float_new(val->NumberValue());
+  else if (val->IsFunction()) {
+    Local<Object> rubyClass =
+      val.As<Function>()->Get(NanNew<String>("_rubyClass")).As<Object>();
+    if (!rubyClass.IsEmpty() && rubyClass->IsObject() &&
+        rubyClass->InternalFieldCount() == 1) {
+      return VALUE(NanGetInternalFieldPointer(rubyClass, 0));
+    }
+  }
   else if (val->IsObject()) {
     VALUE rbObj = RubyObject::FromV8(val.As<Object>());
     if (rbObj != Qnil)
       return rbObj;
-    
+
     // TODO: Should we wrap objects here?
   }
   
@@ -211,13 +220,16 @@ struct MethodCaller::Block
 };
 
 MethodCaller::MethodCaller(VALUE o, _NAN_METHOD_ARGS_TYPE args, int start):
-  obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))), rubyArgs(args.Length()-start),
-  block(NULL)
+  obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))),
+  rubyArgs(args.Length()-start), block(NULL)
 {
   // TODO: Is this right? Is there a way to determine if a block is expected?
   if (args.Length()-start > 0 && args[args.Length()-1]->IsFunction()) {
-    block = new Block(args[args.Length()-1].As<Function>());
-    rubyArgs.resize(rubyArgs.size()-1);
+    Local<Function> func = args[args.Length()-1].As<Function>();
+    if (!func->Has(NanNew<String>("_rubyClass"))) {
+      block = new Block(func);
+      rubyArgs.resize(rubyArgs.size()-1);
+    }
   }
   
   for (size_t i = 0; i < rubyArgs.size(); i++) {

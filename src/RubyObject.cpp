@@ -30,7 +30,7 @@ void RubyObject::Cleanup()
   }
 }
 
-Local<Object> RubyObject::ToV8(VALUE rbObj, Local<Value> owner)
+Local<Object> RubyObject::ToV8(VALUE rbObj, Local<Object> owner)
 {
   NanEscapableScope();
   
@@ -108,15 +108,13 @@ Local<Function> RubyObject::GetCtor(VALUE klass)
 
 NAN_WEAK_CALLBACK(OwnerWeakCB) {}
 
-RubyObject::RubyObject(VALUE obj, Local<v8::Value> owner) :
+RubyObject::RubyObject(VALUE obj, Local<Object> owner) :
   m_obj(obj), m_owner(NULL)
 {
   rb_gc_register_address(&m_obj);
   
   assert(!owner->IsUndefined());
-
-  m_owner = &NanMakeWeakPersistent(owner.As<Object>(), (void*)NULL,
-                                   OwnerWeakCB)->persistent;
+  m_owner = &NanMakeWeakPersistent(owner, (void*)NULL, OwnerWeakCB)->persistent;
   m_owner->MarkIndependent();
   
   VALUE wrappedObj = Data_Wrap_Struct(s_wrappedClass, NULL, NULL, this);

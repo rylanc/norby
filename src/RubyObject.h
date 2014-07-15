@@ -15,7 +15,7 @@ class RubyObject : public node::ObjectWrap
   static void Init();
   static void Cleanup();
   
-  static v8::Local<v8::Object> ToV8(VALUE rbObj, v8::Local<v8::Value> owner);
+  static v8::Local<v8::Object> ToV8(VALUE rbObj, v8::Local<v8::Object> owner);
   static VALUE FromV8(v8::Handle<v8::Object> owner);
   
   static inline v8::Local<v8::Object> RubyUnwrap(VALUE self)
@@ -34,7 +34,7 @@ class RubyObject : public node::ObjectWrap
   static VALUE CallV8Method(int argc, VALUE* argv, VALUE self);
 
  private:
-  RubyObject(VALUE obj, v8::Local<v8::Value> owner);
+  RubyObject(VALUE obj, v8::Local<v8::Object> owner);
   ~RubyObject();
   
   static v8::Local<v8::Function> GetCtor(VALUE klass);

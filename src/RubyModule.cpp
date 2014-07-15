@@ -52,7 +52,7 @@ inline void RubyModule::AddMethods(Handle<ObjectTemplate> tpl, VALUE methods)
     VALUE methodName = rb_id2str(methodID);
     
     if (std::strncmp(RSTRING_PTR(methodName), "new",
-                    RSTRING_LEN(methodName)) != 0) {
+                     RSTRING_LEN(methodName)) != 0) {
       Local<FunctionTemplate> methodTemplate =
         NanNew<FunctionTemplate>(CallMethod, EXTERNAL_WRAP((void*)methodID));
       tpl->Set(NanNew<String>(RSTRING_PTR(methodName), RSTRING_LEN(methodName)),
@@ -72,7 +72,8 @@ NAN_METHOD(RubyModule::CallNew)
 {
   NanScope();
   VALUE klass = VALUE(NanGetInternalFieldPointer(args.Holder(), 0));
-  Local<Value> owner = args[0];
+  assert(args[0]->IsObject());
+  Local<Object> owner = args[0].As<Object>();
 
   log("Creating new " << rb_class2name(klass) << " with " <<
       args.Length() << " args");
