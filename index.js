@@ -67,6 +67,9 @@ module.exports.inherits = function(ctor, superName) {
   util.inherits(ctor, SuperCtor);
   
   ctor.defineMethod = function(name, fn) {
+    if (typeof fn !== 'function')
+      throw new TypeError('fn must be a function: ' + fn);
+    
     RubyClass._defineMethod(name, fn);
     this.prototype[name] = fn;
   };

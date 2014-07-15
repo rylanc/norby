@@ -92,14 +92,6 @@ NAN_METHOD(RubyModule::DefineMethod)
   
   log("Defining method " << rb_class2name(klass) << "." <<
       *String::Utf8Value(args[0]));
-  
-  if (!args[1]->IsFunction()) {
-    // TODO: Should we do this check in JS?
-    std::string errMsg("fn must be a function: ");
-    errMsg.append(*String::Utf8Value(args[1]));
-    NanThrowTypeError(errMsg.c_str());
-    NanReturnUndefined();
-  }
 
   rb_define_method(klass, *String::Utf8Value(args[0]),
                    RUBY_METHOD_FUNC(RubyObject::CallV8Method), -1);
