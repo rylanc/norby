@@ -30,7 +30,39 @@ void RubyObject::Cleanup()
   }
 }
 
-Local<Function> RubyObject::GetClass(VALUE klass)
+Local<Object> RubyObject::ToV8(VALUE rbObj, Local<Value> owner)
+{
+  NanEscapableScope();
+  
+  Local<Object> v8Obj = GetCtor(CLASS_OF(rbObj))->NewInstance();
+  RubyObject* self = new RubyObject(rbObj, owner);
+  self->Wrap(v8Obj);
+  v8Obj->SetHiddenValue(NanNew<String>(RUBY_OBJECT_TAG), NanTrue());
+  
+  return NanEscapeScope(v8Obj);
+}
+
+VALUE RubyObject::FromV8(Handle<Object> owner)
+{
+  NanScope();
+  
+  // TODO: Is this the best way to do this? Should we add the hidden prop to
+  // the owner object?
+  Local<Value> wrappedVal = owner->Get(NanNew<String>("_rubyObj"));
+  if (wrappedVal->IsObject()) {
+    Local<Object> wrappedObj = wrappedVal.As<Object>();
+    Local<Value> tag =
+      wrappedObj->GetHiddenValue(NanNew<String>(RubyObject::RUBY_OBJECT_TAG));
+    if (!tag.IsEmpty() && tag->IsTrue()) {
+      RubyObject* self = node::ObjectWrap::Unwrap<RubyObject>(wrappedObj);
+      return self->m_obj;
+    }
+  }
+  
+  return Qnil;
+}
+
+Local<Function> RubyObject::GetCtor(VALUE klass)
 {
   NanEscapableScope();
 
@@ -38,8 +70,8 @@ Local<Function> RubyObject::GetClass(VALUE klass)
   TplMap::iterator it = s_functionTemplates.find(klass);
   if (it == s_functionTemplates.end()) {
     log("Creating new class: " << rb_class2name(klass));
-    
-    tpl = NanNew<FunctionTemplate>(New, EXTERNAL_WRAP((void*)klass));
+
+    tpl = NanNew<FunctionTemplate>();
     tpl->SetClassName(NanNew<String>(rb_class2name(klass)));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
@@ -54,31 +86,6 @@ Local<Function> RubyObject::GetClass(VALUE klass)
                                  EXTERNAL_WRAP((void*)methodID));
       tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
     }
-    
-    tpl->PrototypeTemplate()->SetInternalFieldCount(1);
-    // TODO: Is this right? Not sure we get all the methods that the Class obj would expose.. (e.g. define_method)
-    // Class methods
-    methods = rb_obj_singleton_methods(1, &trueArg, klass);
-    for (int i = 0; i < RARRAY_LEN(methods); i++) {
-      ID methodID = SYM2ID(rb_ary_entry(methods, i));
-      Local<String> methodName = NanNew<String>(rb_id2name(methodID));
-
-      Local<FunctionTemplate> methodTemplate =
-        NanNew<FunctionTemplate>(CallClassMethod, EXTERNAL_WRAP((void*)methodID));
-      tpl->Set(methodName, methodTemplate->GetFunction());
-    }
-    
-    // Constants
-    VALUE constants = rb_mod_constants(0, NULL, klass);
-    for (int i = 0; i < RARRAY_LEN(constants); i++) {
-      ID constantID = SYM2ID(rb_ary_entry(constants, i));
-      
-      VALUE val = rb_const_get(klass, constantID);
-      tpl->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
-    }
-    
-    Local<FunctionTemplate> defMethTpl = NanNew<FunctionTemplate>(DefineMethod);
-    tpl->Set(NanNew<String>("_defineMethod"), defMethTpl->GetFunction());
     
 #if (NODE_MODULE_VERSION > 0x000B)
     s_functionTemplates[klass].Reset(v8::Isolate::GetCurrent(), tpl);
@@ -96,56 +103,7 @@ Local<Function> RubyObject::GetClass(VALUE klass)
 #endif
   }
 
-  Local<Function> fn = tpl->GetFunction();
-  Local<Object> proto = fn->Get(NanNew<String>("prototype")).As<Object>();
-  assert(proto->InternalFieldCount() > 0);
-  NanSetInternalFieldPointer(proto, 0, (void*)klass);
-  
-  return NanEscapeScope(fn);
-}
-
-struct NewInstanceCaller
-{
-  NewInstanceCaller(std::vector<VALUE> &r, VALUE k) : rubyArgs(r), klass(k) {}
-
-  VALUE operator()() const
-  {
-    return rb_class_new_instance(rubyArgs.size(), &rubyArgs[0], klass);
-  }
-
-  std::vector<VALUE>& rubyArgs;
-  VALUE klass;
-};
-
-NAN_METHOD(RubyObject::New)
-{
-  NanScope();
-  assert(args.IsConstructCall());
-
-  VALUE klass = VALUE(EXTERNAL_UNWRAP(args.Data()));
-    
-  Local<Array> v8Args = args[1].As<Array>();
-  VALUE obj = Qnil;
-  if (v8Args->Length() == 1 && v8Args->Get(0)->IsExternal()) {
-    log("Wrapping existing " << rb_class2name(klass));
-    obj = VALUE(EXTERNAL_UNWRAP(v8Args->Get(0)));
-  }
-  else {
-    std::vector<VALUE> rubyArgs(v8Args->Length());
-    for (uint32_t i = 0; i < v8Args->Length(); i++) {
-      rubyArgs[i] = v8ToRuby(v8Args->Get(i));
-    }
-  
-    log("Creating new " << rb_class2name(klass) << " with " << rubyArgs.size() << " args");
-    SAFE_RUBY_CALL(obj, NewInstanceCaller(rubyArgs, klass));
-  }
-    
-  // Wrap the obj immediately to prevent it from being garbage collected
-  RubyObject *self = new RubyObject(obj, args[0]);
-  self->Wrap(args.This());
-  args.This()->SetHiddenValue(NanNew<String>(RUBY_OBJECT_TAG), NanTrue());
-    
-  NanReturnValue(args.This());
+  return NanEscapeScope(tpl->GetFunction());
 }
 
 NAN_WEAK_CALLBACK(OwnerWeakCB) {}
@@ -156,6 +114,7 @@ RubyObject::RubyObject(VALUE obj, Local<v8::Value> owner) :
   rb_gc_register_address(&m_obj);
   
   assert(!owner->IsUndefined());
+
   m_owner = &NanMakeWeakPersistent(owner.As<Object>(), (void*)NULL,
                                    OwnerWeakCB)->persistent;
   m_owner->MarkIndependent();
@@ -176,41 +135,6 @@ NAN_METHOD(RubyObject::CallInstanceMethod)
 
   RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
   NanReturnValue(CallRubyFromV8(self->m_obj, args));
-}
-
-NAN_METHOD(RubyObject::CallClassMethod)
-{
-  NanScope();
-  
-  Local<Object> proto =
-    args.This()->Get(NanNew<String>("prototype")).As<Object>();
-  VALUE klass = VALUE(NanGetInternalFieldPointer(proto, 0));
-
-  NanReturnValue(CallRubyFromV8(klass, args));
-}
-
-NAN_METHOD(RubyObject::DefineMethod)
-{
-  NanScope();
-  
-  Local<Object> proto =
-    args.This()->Get(NanNew<String>("prototype")).As<Object>();
-  VALUE klass = VALUE(NanGetInternalFieldPointer(proto, 0));
-  
-  log("Defining method " << rb_class2name(klass) << "." << *String::Utf8Value(args[0]));
-  
-  if (!args[1]->IsFunction()) {
-    // TODO: Should we do this check in JS?
-    std::string errMsg("fn must be a function: ");
-    errMsg.append(*String::Utf8Value(args[1]));
-    NanThrowTypeError(errMsg.c_str());
-    NanReturnUndefined();
-  }
-
-  rb_define_method(klass, *String::Utf8Value(args[0]),
-                   RUBY_METHOD_FUNC(CallV8Method), -1);
-  
-  NanReturnUndefined();
 }
 
 VALUE RubyObject::CallV8Method(int argc, VALUE* argv, VALUE self)

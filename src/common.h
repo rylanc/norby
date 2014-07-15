@@ -4,6 +4,7 @@
 #include <nan.h>
 #include <v8.h>
 #include <ruby.h>
+#include <vector>
 
 #ifdef _DEBUG
 #include <iostream>
@@ -57,13 +58,25 @@ v8::Handle<v8::Value> CallRubyFromV8(VALUE recv, _NAN_METHOD_ARGS_TYPE args);
 
 #if (NODE_MODULE_VERSION > 0x000B)
 #define EXTERNAL_WRAP(x) v8::External::New(v8::Isolate::GetCurrent(), x)
-#define EXTERNAL_NEW EXTERNAL_WRAP
 #define EXTERNAL_UNWRAP(x) x.As<External>()->Value()
 #else
 #define EXTERNAL_WRAP(x) v8::External::Wrap(x)
-#define EXTERNAL_NEW(x) v8::External::New(x)
 #define EXTERNAL_UNWRAP(x) v8::External::Unwrap(x)
 #endif
+
+// TODO: Should we inline any of this?
+struct MethodCaller
+{
+  MethodCaller(VALUE o, _NAN_METHOD_ARGS_TYPE args, int start = 0);
+  VALUE operator()() const;
+  
+  struct Block;
+
+  VALUE obj;
+  VALUE methodID;
+  std::vector<VALUE> rubyArgs;
+  struct Block* block;
+};
 
 // For debugging
 void DumpRubyArgs(int argc, VALUE* argv);

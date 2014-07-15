@@ -1,12 +1,13 @@
 #include "Ruby.h"
 #include "RubyObject.h"
+#include "RubyModule.h"
 #include "common.h"
 #include <cstring>
 #include <string>
 
 using namespace v8;
 
-Persistent<Function> Ruby::s_getCtor;
+Persistent<Function> Ruby::s_wrapExisting;
 VALUE Ruby::BLOCK_WRAPPER_CLASS;
 
 void Ruby::Init(Handle<Object> module)
@@ -37,7 +38,7 @@ NAN_METHOD(Ruby::New)
   NanScope();
 
   assert(args[0]->IsFunction());
-  NanAssignPersistent(s_getCtor, args[0].As<Function>());
+  NanAssignPersistent(s_wrapExisting, args[0].As<Function>());
 
   Local<Object> bindings = NanNew<Object>();
   NODE_SET_METHOD(bindings, "_getClass", GetClass);
@@ -49,14 +50,15 @@ NAN_METHOD(Ruby::New)
   NanReturnValue(bindings);
 }
 
-Local<Function> Ruby::GetCtor(Local<Function> rubyClass)
+Local<Object> Ruby::WrapExisting(Local<Object> rubyClass)
 {
   NanEscapableScope();
-
-  Local<Function> getCtor = NanNew<Function>(s_getCtor);
+  
+  Local<Function> wrapExisting = NanNew<Function>(s_wrapExisting);
   Handle<Value> argv[] = { rubyClass };
+  
   return NanEscapeScope(NanMakeCallback(NanGetCurrentContext()->Global(),
-                                        getCtor, 1, argv).As<Function>());
+                                        wrapExisting, 1, argv).As<Object>());
 }
 
 struct ConstGetter
@@ -87,7 +89,7 @@ struct ConstGetter
   Handle<Value> nameVal;
 };
 
-// TODO: Should/could we combine this with RubyObject::GetClass?
+// TODO: Do we still need this and .getConstant?
 NAN_METHOD(Ruby::GetClass)
 {
   NanScope();
@@ -103,7 +105,7 @@ NAN_METHOD(Ruby::GetClass)
     NanReturnUndefined();
   }
 
-  NanReturnValue(RubyObject::GetClass(klass));
+  NanReturnValue(RubyModule::Wrap(klass));
 }
 
 struct ClassDefiner
@@ -132,7 +134,7 @@ NAN_METHOD(Ruby::DefineClass)
   VALUE klass;
   SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
 
-  NanReturnValue(RubyObject::GetClass(klass));
+  NanReturnValue(RubyModule::Wrap(klass));
 }
 
 NAN_METHOD(CallMethod)

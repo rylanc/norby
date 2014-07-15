@@ -1,0 +1,108 @@
+#include "RubyModule.h"
+#include "common.h"
+#include "RubyObject.h"
+#include <string>
+#include <cstring>
+
+using namespace v8;
+
+Local<Object> RubyModule::Wrap(VALUE mod)
+{
+  NanEscapableScope();
+  
+  Local<ObjectTemplate> tpl = NanNew<ObjectTemplate>();
+  tpl->SetInternalFieldCount(1);
+  
+  // TODO: Should we create the instance here or after we add the methods? Does it matter?
+  // Class methods
+  AddMethods(tpl, rb_class_public_instance_methods(0, NULL, CLASS_OF(mod)));
+  AddMethods(tpl, rb_obj_singleton_methods(0, NULL, mod));
+  
+  // Constants
+  VALUE constants = rb_mod_constants(0, NULL, mod);
+  for (int i = 0; i < RARRAY_LEN(constants); i++) {
+    ID constantID = SYM2ID(rb_ary_entry(constants, i));
+      
+    VALUE val = rb_const_get(mod, constantID);
+    tpl->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
+  }
+  
+  if (TYPE(mod) == T_CLASS) {
+    // TODO: new or newInstance?
+    ID newID = rb_intern("new");
+    log("Creating a class: " << mod << " nid: " << newID);
+    Local<FunctionTemplate> newTemplate =
+      NanNew<FunctionTemplate>(CallNew, EXTERNAL_WRAP((void*)newID));
+    tpl->Set(NanNew<String>("new"), newTemplate->GetFunction());
+    
+    Local<FunctionTemplate> defMethTpl = NanNew<FunctionTemplate>(DefineMethod);
+    tpl->Set(NanNew<String>("_defineMethod"), defMethTpl->GetFunction());
+  }
+  
+  Local<Object> obj = tpl->NewInstance();
+  NanSetInternalFieldPointer(obj, 0, (void*)mod);
+
+  return NanEscapeScope(obj);
+}
+
+inline void RubyModule::AddMethods(Handle<ObjectTemplate> tpl, VALUE methods)
+{
+  for (int i = 0; i < RARRAY_LEN(methods); i++) {
+    ID methodID = SYM2ID(rb_ary_entry(methods, i));
+    VALUE methodName = rb_id2str(methodID);
+    
+    if (std::strncmp(RSTRING_PTR(methodName), "new",
+                    RSTRING_LEN(methodName)) != 0) {
+      Local<FunctionTemplate> methodTemplate =
+        NanNew<FunctionTemplate>(CallMethod, EXTERNAL_WRAP((void*)methodID));
+      tpl->Set(NanNew<String>(RSTRING_PTR(methodName), RSTRING_LEN(methodName)),
+               methodTemplate->GetFunction());
+    }
+  }
+}
+
+NAN_METHOD(RubyModule::CallMethod)
+{
+  NanScope();
+  VALUE klass = VALUE(NanGetInternalFieldPointer(args.Holder(), 0));
+  NanReturnValue(CallRubyFromV8(klass, args));
+}
+
+NAN_METHOD(RubyModule::CallNew)
+{
+  NanScope();
+  VALUE klass = VALUE(NanGetInternalFieldPointer(args.Holder(), 0));
+  Local<Value> owner = args[0];
+
+  log("Creating new " << rb_class2name(klass) << " with " <<
+      args.Length() << " args");
+  
+  VALUE obj;
+  SAFE_RUBY_CALL(obj, MethodCaller(klass, args, 1));
+
+  NanReturnValue(RubyObject::ToV8(obj, owner));
+}
+
+// TODO: Should we hide this from non-created classes?
+NAN_METHOD(RubyModule::DefineMethod)
+{
+  NanScope();
+  
+  VALUE klass = VALUE(NanGetInternalFieldPointer(args.Holder(), 0));
+  
+  log("Defining method " << rb_class2name(klass) << "." <<
+      *String::Utf8Value(args[0]));
+  
+  if (!args[1]->IsFunction()) {
+    // TODO: Should we do this check in JS?
+    std::string errMsg("fn must be a function: ");
+    errMsg.append(*String::Utf8Value(args[1]));
+    NanThrowTypeError(errMsg.c_str());
+    NanReturnUndefined();
+  }
+
+  rb_define_method(klass, *String::Utf8Value(args[0]),
+                   RUBY_METHOD_FUNC(RubyObject::CallV8Method), -1);
+  
+  NanReturnUndefined();
+}

@@ -1,4 +1,4 @@
-var bindings = require('bindings')('norby.node')(getCtor),
+var bindings = require('bindings')('norby.node')(wrapExisting),
     util = require("util");
 
 module.exports.newInstance = function() {
@@ -6,21 +6,30 @@ module.exports.newInstance = function() {
   return new (Cls.bind.apply(Cls, arguments))();
 };
 
+function wrapExisting(RubyClass) {
+  return Object.create(getCtor(RubyClass).prototype);
+}
+
+// Because of the way node native addons work, we can't inherit directly from a
+// wrapped C++ object. Holding the RubyObject as a member is the workaround.
 function getCtor(RubyClass) {
   function Cls() {
-    this._rubyObj = new RubyClass(this, arguments);
+    var args = [ this ];
+    for (var i = 0; i < arguments.length; ++i) {
+      args[i+1] = arguments[i];
+    }
+    this._rubyObj = RubyClass.new.apply(RubyClass, args);
   }
   
   // TODO: Is there a better/faster way to do this? Can we cache these protos?
-  function proxyFunc(func) {
+  function proxyFunc(method) {
     return function() {
-      return func.apply(this._rubyObj, arguments);
+      return this._rubyObj[method].apply(this._rubyObj, arguments);
     };
   }
   
-  Object.keys(RubyClass.prototype).forEach(function(key) {
-    if (typeof RubyClass.prototype[key] === 'function')
-      Cls.prototype[key] = proxyFunc(RubyClass.prototype[key]);
+  RubyClass.instance_methods().forEach(function(method) {
+    Cls.prototype[method] = proxyFunc(method);
   });
   
   Object.keys(RubyClass).forEach(function(key) {

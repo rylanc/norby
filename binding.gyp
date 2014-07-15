@@ -6,7 +6,8 @@
         "src/norby.cpp",
         "src/Ruby.cpp",
         "src/common.cpp",
-        "src/RubyObject.cpp"
+        "src/RubyObject.cpp",
+        "src/RubyModule.cpp"
       ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",

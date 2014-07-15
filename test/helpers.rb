@@ -165,6 +165,9 @@ end
 
 module MyMod
   MY_CONST = "abcde"
+  def MyMod.mod_func
+    return [ 1, 2, 3, 4]
+  end
   class ModClass
     def call_me
       return 3.14159

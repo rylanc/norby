@@ -81,12 +81,23 @@ describe('.inherits', function() {
 
     it('should throw when an undefined function is called', function() {
       var d = new Derived();
-      var fn = function() {
-        return d.make_invalid_call();
-      };
+      var fn = function() { return d.make_invalid_call(); };
 
-      expect(fn).to.
-      throw (ReferenceError);
+      expect(fn).to.throw(ReferenceError);
+    });
+    
+    describe('.defineMethod', function() {
+      it('should throw when a non-function is passed in', function() {
+        var fn = function() { Derived.defineMethod('invalid', 5); };
+        expect(fn).to.throw(TypeError);
+      });
+      
+      it('should throw when a property is later changed to a non-function', function() {
+        var d = new Derived();
+        d.call_derived = 5;
+        var fn = function() { return d.make_call(); };
+        expect(fn).to.throw(TypeError);
+      });
     });
   });
 });

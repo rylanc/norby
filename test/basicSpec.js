@@ -71,6 +71,13 @@ describe('.getClass', function() {
     expect(t.mday()).to.equal(1);
   });
   
+  it.skip('should expose inherited class methods', function() {
+    var Time = ruby.getClass('Time');
+    expect(Time.name).to.be.a('function');
+    var result = Time.name();
+    expect(result).to.equal('Time');
+  });
+  
   it('should work with module classes', function() {
     var ModClass = ruby.getClass('MyMod::ModClass');
     var m = new ModClass;
@@ -82,6 +89,16 @@ describe('.getClass', function() {
     var ClassTester = ruby.getClass('ClassTester');
     var result = ClassTester.MY_CONST;
     expect(result).to.deep.equal([1, 2]);
+  });
+  
+  it('should call overridden \'new\'', function() {
+    var Proc = ruby.getClass('Proc');
+    var p = new Proc(function(name) {
+      return 'hello, ' + name;
+    });
+    
+    var result = p.call('stan');
+    expect(result).to.equal('hello, stan');
   });
 });
 

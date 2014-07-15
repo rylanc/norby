@@ -1,8 +1,8 @@
 #include "common.h"
 #include "Ruby.h"
 #include "RubyObject.h"
+#include "RubyModule.h"
 #include <node.h>
-#include <vector>
 #include <limits>
 #include <iostream>
 
@@ -53,20 +53,19 @@ Handle<Value> rubyToV8(VALUE val)
   case T_DATA: {
     Local<Object> owner = RubyObject::RubyUnwrap(val);
     if (owner.IsEmpty()) {
-      VALUE klass = rb_class_of(val);
-      Local<Function> rubyClass = RubyObject::GetClass(klass);
-      
-      Local<Function> ctor = Ruby::GetCtor(rubyClass);
-      Handle<Value> argv[] = { EXTERNAL_NEW((void*)val) };
-      return NanEscapeScope(ctor->NewInstance(1, argv));
+      VALUE klass = CLASS_OF(val);
+      owner = Ruby::WrapExisting(RubyModule::Wrap(klass));
+      owner->Set(NanNew<String>("_rubyObj"), RubyObject::ToV8(val, owner));
     }
-    else
-      return NanEscapeScope(owner);
+    
+    return NanEscapeScope(owner);
   }
   case T_SYMBOL: {
     VALUE str = rb_id2str(SYM2ID(val));
     return NanEscapeScope(NanNew<String>(RSTRING_PTR(str), RSTRING_LEN(str)));
   }
+  case T_MODULE:
+    return NanEscapeScope(RubyModule::Wrap(val));
   default:
     std::cerr << "Unknown ruby type(" << type << "): " <<
                  rb_obj_classname(val) << std::endl;
@@ -111,18 +110,9 @@ VALUE v8ToRuby(Handle<Value> val)
   else if (val->IsNumber())
     return rb_float_new(val->NumberValue());
   else if (val->IsObject()) {
-    // TODO: Is this the best way to do this? Should we add the hidden prop to
-    // the owner object?
-    Local<Value> wrappedVal = val.As<Object>()->Get(NanNew<String>("_rubyObj"));
-    if (wrappedVal->IsObject()) {
-      Local<Object> wrappedObj = wrappedVal.As<Object>();
-      Local<Value> hidden =
-        wrappedObj->GetHiddenValue(NanNew<String>(RubyObject::RUBY_OBJECT_TAG));
-      if (!hidden.IsEmpty() && hidden->IsTrue()) {
-        RubyObject* rubyObj = node::ObjectWrap::Unwrap<RubyObject>(wrappedObj);
-        return rubyObj->GetObject();
-      }
-    }
+    VALUE rbObj = RubyObject::FromV8(val.As<Object>());
+    if (rbObj != Qnil)
+      return rbObj;
     
     // TODO: Should we wrap objects here?
   }
@@ -190,78 +180,69 @@ VALUE CallV8FromRuby(const Handle<Object> recv,
   return v8ToRuby(ret);
 }
 
-struct MethodCaller
+struct MethodCaller::Block
 {
-  struct Block
+  Block(Handle<Function> f)
   {
-    Block(Handle<Function> f)
-    {
-      NanAssignPersistent(func, f);
-      dataObj = Data_Wrap_Struct(Ruby::BLOCK_WRAPPER_CLASS, NULL, Free, this);
-    }
-    
-    static VALUE Func(VALUE, VALUE data, int argc, const VALUE* rbArgv)
-    {
-      Block* block;
-      Data_Get_Struct(data, Block, block);
-  
-      Local<Function> fn = NanNew<Function>(block->func);
-      // TODO: Should we store args.This() and call it as the receiver?
-      return CallV8FromRuby(NanGetCurrentContext()->Global(), fn,
-                            argc, rbArgv);
-    }
-    
-    static void Free(void* data)
-    {
-      Block* block = static_cast<Block*>(data);
-      NanDisposePersistent(block->func);
-      delete block;
-    }
-    
-    Persistent<Function> func;
-    VALUE dataObj;
-  };
-  
-  inline
-  MethodCaller(VALUE o, _NAN_METHOD_ARGS_TYPE args):
-    obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))), rubyArgs(args.Length()),
-    block(NULL)
-  {
-    // TODO: Is this right? Is there a way to determine if a block is expected?
-    if (args.Length() > 0 && args[args.Length()-1]->IsFunction()) {
-      block = new Block(args[args.Length()-1].As<Function>());
-      rubyArgs.resize(args.Length()-1);
-    }
-    
-    for (size_t i = 0; i < rubyArgs.size(); i++) {
-      rubyArgs[i] = v8ToRuby(args[i]);
-    }
+    NanAssignPersistent(func, f);
+    dataObj = Data_Wrap_Struct(Ruby::BLOCK_WRAPPER_CLASS, NULL, Free, this);
   }
-  
-  VALUE operator()() const
-  {
-    if (block == NULL) {
-      log("Calling method: " << rb_obj_classname(obj) << "." <<
-          rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
     
-      return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
-    }
-    else {
-      log("Calling method: " << rb_obj_classname(obj) << "." <<
-          rb_id2name(methodID) << " with " << rubyArgs.size() <<
-          " args and a block");
-      
-      // TODO: Probably not available in Ruby < 1.9
-      return rb_block_call(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0],
-                           RUBY_METHOD_FUNC(Block::Func), block->dataObj);
-    }
+  static VALUE Func(VALUE, VALUE data, int argc, const VALUE* rbArgv)
+  {
+    Block* block;
+    Data_Get_Struct(data, Block, block);
+  
+    Local<Function> fn = NanNew<Function>(block->func);
+    // TODO: Should we store args.This() and call it as the receiver?
+    return CallV8FromRuby(NanGetCurrentContext()->Global(), fn,
+                          argc, rbArgv);
   }
-
-  VALUE obj;
-  VALUE methodID;
-  std::vector<VALUE> rubyArgs;
-  Block* block;
+    
+  static void Free(void* data)
+  {
+    Block* block = static_cast<Block*>(data);
+    NanDisposePersistent(block->func);
+    delete block;
+  }
+    
+  Persistent<Function> func;
+  VALUE dataObj;
 };
+
+MethodCaller::MethodCaller(VALUE o, _NAN_METHOD_ARGS_TYPE args, int start):
+  obj(o), methodID(ID(EXTERNAL_UNWRAP(args.Data()))), rubyArgs(args.Length()-start),
+  block(NULL)
+{
+  // TODO: Is this right? Is there a way to determine if a block is expected?
+  if (args.Length()-start > 0 && args[args.Length()-1]->IsFunction()) {
+    block = new Block(args[args.Length()-1].As<Function>());
+    rubyArgs.resize(rubyArgs.size()-1);
+  }
+  
+  for (size_t i = 0; i < rubyArgs.size(); i++) {
+    rubyArgs[i] = v8ToRuby(args[i+start]);
+  }
+}
+
+VALUE MethodCaller::operator()() const
+{
+  if (block == NULL) {
+    log("Calling method: " << rb_obj_classname(obj) << "." <<
+        rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
+  
+    return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
+  }
+  else {
+    log("Calling method: " << rb_obj_classname(obj) << "." <<
+        rb_id2name(methodID) << " with " << rubyArgs.size() <<
+        " args and a block");
+    
+    // TODO: Probably not available in Ruby < 1.9
+    return rb_block_call(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0],
+                        RUBY_METHOD_FUNC(Block::Func), block->dataObj);
+  }
+}
 
 Handle<Value> CallRubyFromV8(VALUE recv, _NAN_METHOD_ARGS_TYPE args)
 {
