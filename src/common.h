@@ -8,9 +8,9 @@
 
 #ifdef _DEBUG
 #include <iostream>
-#define log(x) std::cout << x << std::endl
+#define LOG(x) std::cout << x << std::endl
 #else
-#define log(x)
+#define LOG(x)
 #endif
 
 // Conversion helpers

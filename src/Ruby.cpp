@@ -27,7 +27,7 @@ void Ruby::Init(Handle<Object> module)
 
 void Ruby::Cleanup(void*)
 {
-  log("Cleaning up!");
+  LOG("Cleaning up!");
   RubyObject::Cleanup();
   ruby_cleanup(0);
 }
@@ -120,7 +120,7 @@ NAN_METHOD(Ruby::DefineClass)
 {
   NanScope();
 
-  log("Inherit called for " << *String::Utf8Value(args[0]));
+  LOG("Inherit called for " << *String::Utf8Value(args[0]));
 
   VALUE super;
   SAFE_RUBY_CALL(super, ConstGetter(args[1]));

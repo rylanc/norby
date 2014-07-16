@@ -5,7 +5,7 @@
 #include <node.h>
 #include <limits>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 using namespace v8;
 
@@ -16,7 +16,7 @@ Handle<Value> rubyToV8(VALUE val)
 {
   NanEscapableScope();
 
-  log("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8");
+  LOG("Converting " << RSTRING_PTR(rb_funcall2(val, rb_intern("to_s"), 0, NULL)) << " to v8");
   
   int type = TYPE(val);
   switch (type) {
@@ -87,7 +87,7 @@ VALUE v8ToRuby(Handle<Value> val)
 {
   NanScope();
 
-  log("Converting " << *String::Utf8Value(val) << " to ruby");
+  LOG("Converting " << *String::Utf8Value(val) << " to ruby");
 
   if (val->IsUndefined())
     return Qnil;
@@ -249,13 +249,13 @@ MethodCaller::MethodCaller(VALUE o, _NAN_METHOD_ARGS_TYPE args, int start):
 VALUE MethodCaller::operator()() const
 {
   if (block == NULL) {
-    log("Calling method: " << rb_obj_classname(obj) << "." <<
+    LOG("Calling method: " << rb_obj_classname(obj) << "." <<
         rb_id2name(methodID) << " with " << rubyArgs.size() << " args");
   
     return rb_funcall2(obj, methodID, rubyArgs.size(), (VALUE*)&rubyArgs[0]);
   }
   else {
-    log("Calling method: " << rb_obj_classname(obj) << "." <<
+    LOG("Calling method: " << rb_obj_classname(obj) << "." <<
         rb_id2name(methodID) << " with " << rubyArgs.size() <<
         " args and a block");
     

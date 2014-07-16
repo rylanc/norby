@@ -17,7 +17,7 @@ Local<Object> RubyModule::ToV8(VALUE mod)
   Local<Object> v8Mod;
   ObjMap::iterator it = s_objCache.find(mod);
   if (it == s_objCache.end()) {
-    log("Creating new module/class: " << rb_class2name(mod));
+    LOG("Creating new module/class: " << rb_class2name(mod));
     
     Local<ObjectTemplate> tpl = NanNew<ObjectTemplate>();
     tpl->SetInternalFieldCount(1);
@@ -61,7 +61,7 @@ Local<Object> RubyModule::ToV8(VALUE mod)
     }
   }
   else {
-    log("Getting existing module/class: " << rb_class2name(mod));
+    LOG("Getting existing module/class: " << rb_class2name(mod));
     
 #if (NODE_MODULE_VERSION > 0x000B)    
     v8Mod = Local<Object>::New(v8::Isolate::GetCurrent(), it->second);
@@ -103,7 +103,7 @@ NAN_METHOD(RubyModule::CallNew)
   assert(args[0]->IsObject());
   Local<Object> owner = args[0].As<Object>();
 
-  log("Creating new " << rb_class2name(klass) << " with " <<
+  LOG("Creating new " << rb_class2name(klass) << " with " <<
       args.Length() << " args");
   
   VALUE obj;
@@ -119,7 +119,7 @@ NAN_METHOD(RubyModule::DefineMethod)
   
   VALUE klass = VALUE(NanGetInternalFieldPointer(args.Holder(), 0));
   
-  log("Defining method " << rb_class2name(klass) << "." <<
+  LOG("Defining method " << rb_class2name(klass) << "." <<
       *String::Utf8Value(args[0]));
 
   rb_define_method(klass, *String::Utf8Value(args[0]),

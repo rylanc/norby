@@ -69,7 +69,7 @@ Local<Function> RubyObject::GetCtor(VALUE klass)
   Local<FunctionTemplate> tpl;
   TplMap::iterator it = s_functionTemplates.find(klass);
   if (it == s_functionTemplates.end()) {
-    log("Creating new class: " << rb_class2name(klass));
+    LOG("Creating new class: " << rb_class2name(klass));
 
     tpl = NanNew<FunctionTemplate>();
     tpl->SetClassName(NanNew<String>(rb_class2name(klass)));
@@ -94,7 +94,7 @@ Local<Function> RubyObject::GetCtor(VALUE klass)
 #endif
   }
   else {
-    log("Getting existing class: " << rb_class2name(klass));
+    LOG("Getting existing class: " << rb_class2name(klass));
     
 #if (NODE_MODULE_VERSION > 0x000B)    
     tpl = Local<FunctionTemplate>::New(v8::Isolate::GetCurrent(), it->second);
@@ -123,7 +123,7 @@ RubyObject::RubyObject(VALUE obj, Local<Object> owner) :
 
 RubyObject::~RubyObject()
 {
-  log("~RubyObject");
+  LOG("~RubyObject");
   rb_gc_unregister_address(&m_obj);
 }
 
@@ -137,7 +137,7 @@ NAN_METHOD(RubyObject::CallInstanceMethod)
 
 VALUE RubyObject::CallV8Method(int argc, VALUE* argv, VALUE self)
 {
-  log("In CallV8Method: " <<  rb_id2name(rb_frame_this_func()));
+  LOG("In CallV8Method: " <<  rb_id2name(rb_frame_this_func()));
   
   NanScope();
   
