@@ -5,6 +5,7 @@
 #include <node.h>
 #include <limits>
 #include <iostream>
+#include <math.h>
 
 using namespace v8;
 
@@ -45,11 +46,11 @@ Handle<Value> rubyToV8(VALUE val)
   }
   case T_BIGNUM: {
     double dblVal = rb_big2dbl(val);
-    // if (dblVal == HUGE_VAL || dblVal == -HUGE_VAL) {
-    //   VALUE valStr = rb_big2str(val, 10);
-    //   return NanEscapeScope(rubyToV8(valStr));
-    // }
-    // else
+    if (dblVal == HUGE_VAL || dblVal == -HUGE_VAL) {
+      VALUE valStr = rb_big2str(val, 10);
+      return NanEscapeScope(rubyToV8(valStr));
+    }
+    else
       return NanEscapeScope(NanNew<Number>(dblVal));
   }
   case T_TRUE:
