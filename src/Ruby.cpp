@@ -21,6 +21,7 @@ void Ruby::Init(Handle<Object> module)
 
   node::AtExit(Cleanup);
 
+  RubyObject::Init();
   module->Set(NanNew<String>("exports"),
               NanNew<FunctionTemplate>(New)->GetFunction());
 }
