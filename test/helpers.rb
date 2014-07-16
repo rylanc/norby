@@ -23,7 +23,10 @@ class Returner
     return -(1 << 53)
   end
   def ret_bignum
-    5234567890987654321
+    return 5234567890987654321
+  end
+  def ret_hugenum
+    return (Float::MAX.to_int) * 2
   end
   def ret_true
     return true

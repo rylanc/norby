@@ -67,11 +67,18 @@ describe('return', function() {
   describe('bignum', function() {
     // Even though we lose precision due to conversion to floating point,
     // Bignums should still convert
-    it('should return 5234567890987654000', function() {
+    it('should return a number when it fits', function() {
       var t = new Returner();
       var result = t.ret_bignum();
       expect(result).to.be.a('number');
       expect(result).to.equal(5234567890987654321);
+    });
+    
+    it('should return a string when it can\'t fit', function() {
+      var t = new Returner();
+      var result = t.ret_hugenum();
+      expect(result).to.be.a('string');
+      expect(result).to.equal('359538626972463141629054847463408713596141135051689993197834953606314521560057077521179117265533756343080917907028764928468642653778928365536935093407075033972099821153102564152490980180778657888151737016910267884609166473806445896331617118664246696549595652408289446337476354361838599762500808052368249716736');
     });
   });
   
