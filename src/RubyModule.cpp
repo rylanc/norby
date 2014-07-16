@@ -28,15 +28,6 @@ Local<Object> RubyModule::ToV8(VALUE mod)
     AddMethods(v8Mod, rb_class_public_instance_methods(0, NULL, CLASS_OF(mod)));
     AddMethods(v8Mod, rb_obj_singleton_methods(0, NULL, mod));
   
-    // Constants
-    VALUE constants = rb_mod_constants(0, NULL, mod);
-    for (int i = 0; i < RARRAY_LEN(constants); i++) {
-      ID constantID = SYM2ID(rb_ary_entry(constants, i));
-      
-      VALUE val = rb_const_get(mod, constantID);
-      v8Mod->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
-    }
-  
     if (TYPE(mod) == T_CLASS) {
       // TODO: new or newInstance?
       ID newID = rb_intern("new");
@@ -44,7 +35,8 @@ Local<Object> RubyModule::ToV8(VALUE mod)
         NanNew<FunctionTemplate>(CallNew, EXTERNAL_WRAP((void*)newID));
       v8Mod->Set(NanNew<String>("new"), newTemplate->GetFunction());
     
-      Local<FunctionTemplate> defMethTpl = NanNew<FunctionTemplate>(DefineMethod);
+      Local<FunctionTemplate> defMethTpl =
+        NanNew<FunctionTemplate>(DefineMethod);
       v8Mod->Set(NanNew<String>("_defineMethod"), defMethTpl->GetFunction());
       
       Handle<Value> argv[] = { v8Mod };
@@ -58,6 +50,15 @@ Local<Object> RubyModule::ToV8(VALUE mod)
 #else
     NanAssignPersistent(s_objCache[mod], v8Mod);
 #endif
+
+    // Constants
+    VALUE constants = rb_mod_constants(0, NULL, mod);
+    for (int i = 0; i < RARRAY_LEN(constants); i++) {
+      ID constantID = SYM2ID(rb_ary_entry(constants, i));
+      
+      VALUE val = rb_const_get(mod, constantID);
+      v8Mod->Set(NanNew<String>(rb_id2name(constantID)), rubyToV8(val));
+    }
   }
   else {
     log("Getting existing module/class: " << rb_class2name(mod));
