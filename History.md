@@ -1,3 +1,10 @@
+0.1.2 / 2014-07-16
+==================
+
+ * Fixed conversion of Bignums
+ * FIxed a crash when a class/module has a constant of itself (e.g. Object)
+ * Fixed a potential crash on initialization
+
 0.1.1 / 2014-07-15
 ==================
 
