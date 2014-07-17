@@ -296,7 +296,7 @@ lose precision above 2<sup>53</sup>.
 
 #### `Bignum`s
 
-Are converted to JS numbers. See the above note about precision.
+Are converted to JS numbers if they are less than or equal to `Number.MAX_VALUE`. Otherwise, they are converted into JS strings. See the above note about precision.
 
 #### arrays
 
