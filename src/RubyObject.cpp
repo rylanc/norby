@@ -125,6 +125,7 @@ RubyObject::~RubyObject()
 {
   LOG("~RubyObject");
   rb_gc_unregister_address(&m_obj);
+  rb_ivar_set(m_obj, V8_WRAPPER_ID, Qnil);
 }
 
 NAN_METHOD(RubyObject::CallInstanceMethod)
