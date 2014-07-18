@@ -26,7 +26,7 @@ describe('.inherits', function() {
     return 1234;
   });
   
-  it ('should throw when the subclass name matches an existing ruby class',
+  it.skip('should throw when the subclass name matches an existing ruby class',
   function() {
     function Time() {
       Time.super_.call(this);
@@ -98,7 +98,7 @@ describe('.inherits', function() {
         expect(fn).to.throw(TypeError);
       });
       
-      it('should throw when a property is later changed to a non-function', function() {
+      it.skip('should throw when a property is later changed to a non-function', function() {
         var d = new Derived();
         d.call_derived = 5;
         var fn = function() { return d.make_call(); };

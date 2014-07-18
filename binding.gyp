@@ -3,11 +3,8 @@
     {
       "target_name": "norby",
       "sources": [
-        "src/norby.cpp",
         "src/Ruby.cpp",
-        "src/common.cpp",
-        "src/RubyObject.cpp",
-        "src/RubyModule.cpp"
+        "src/RubyObject.cpp"
       ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",

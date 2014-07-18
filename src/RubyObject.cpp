@@ -1,5 +1,4 @@
 #include "RubyObject.h"
-#include "common.h"
 #include <vector>
 #include <string>
 
@@ -7,152 +6,224 @@ using namespace v8;
 
 VALUE trueArg = Qtrue;
 
-const char* RubyObject::RUBY_OBJECT_TAG = "_IsRubyObject";
 ID RubyObject::V8_WRAPPER_ID;
-RubyObject::TplMap RubyObject::s_functionTemplates;
 VALUE RubyObject::s_wrappedClass;
+VALUE RubyObject::BLOCK_WRAPPER_CLASS;
+
+Persistent<Function> RubyObject::s_constructor;
 
 void RubyObject::Init()
 {
   s_wrappedClass = rb_define_class("WrappedRubyObject", rb_cObject);
   V8_WRAPPER_ID = rb_intern("@_wrappedObject");
+  BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
+  
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>();
+  tpl->SetClassName(NanNew<String>("RubyObject"));
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  
+  tpl->PrototypeTemplate()->Set(NanNew<String>("callMethod"),
+    NanNew<FunctionTemplate>(CallMethod)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("callMethodWithBlock"),
+    NanNew<FunctionTemplate>(CallMethodWithBlock)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("setOwner"),
+    NanNew<FunctionTemplate>(SetOwner)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getOwner"),
+    NanNew<FunctionTemplate>(GetOwner)->GetFunction());
+    
+  NanAssignPersistent(s_constructor, tpl->GetFunction());
 }
 
-void RubyObject::Cleanup()
-{
-  for (TplMap::iterator it = s_functionTemplates.begin();
-       it != s_functionTemplates.end(); ++it) {
-#if (NODE_MODULE_VERSION > 0x000B)
-    it->second.Reset();
-#else
-    NanDisposePersistent(it->second);
-#endif
-  }
-}
-
-Local<Object> RubyObject::ToV8(VALUE rbObj, Local<Object> owner)
+Local<Object> RubyObject::New(VALUE rbObj)
 {
   NanEscapableScope();
   
-  Local<Object> v8Obj = GetCtor(CLASS_OF(rbObj))->NewInstance();
-  RubyObject* self = new RubyObject(rbObj, owner);
+  RubyObject* self = new RubyObject(rbObj);
+  Local<Object> v8Obj = NanNew<Function>(s_constructor)->NewInstance();
   self->Wrap(v8Obj);
-  v8Obj->SetHiddenValue(NanNew<String>(RUBY_OBJECT_TAG), NanTrue());
   
   return NanEscapeScope(v8Obj);
 }
 
-VALUE RubyObject::FromV8(Handle<Object> owner)
-{
-  NanScope();
-  
-  // TODO: Is this the best way to do this? Should we add the hidden prop to
-  // the owner object?
-  Local<Value> wrappedVal = owner->Get(NanNew<String>("_rubyObj"));
-  if (wrappedVal->IsObject()) {
-    Local<Object> wrappedObj = wrappedVal.As<Object>();
-    Local<Value> tag =
-      wrappedObj->GetHiddenValue(NanNew<String>(RubyObject::RUBY_OBJECT_TAG));
-    if (!tag.IsEmpty() && tag->IsTrue()) {
-      RubyObject* self = node::ObjectWrap::Unwrap<RubyObject>(wrappedObj);
-      return self->m_obj;
-    }
-  }
-  
-  return Qnil;
-}
-
-Local<Function> RubyObject::GetCtor(VALUE klass)
-{
-  NanEscapableScope();
-
-  Local<FunctionTemplate> tpl;
-  TplMap::iterator it = s_functionTemplates.find(klass);
-  if (it == s_functionTemplates.end()) {
-    LOG("Creating new class: " << rb_class2name(klass));
-
-    tpl = NanNew<FunctionTemplate>();
-    tpl->SetClassName(NanNew<String>(rb_class2name(klass)));
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
-
-    // Instance methods
-    VALUE methods = rb_class_public_instance_methods(1, &trueArg, klass);
-    for (int i = 0; i < RARRAY_LEN(methods); i++) {
-      ID methodID = SYM2ID(rb_ary_entry(methods, i));
-      Local<String> methodName = NanNew<String>(rb_id2name(methodID));
-
-      Local<FunctionTemplate> methodTemplate =
-        NanNew<FunctionTemplate>(CallInstanceMethod,
-                                 EXTERNAL_WRAP((void*)methodID));
-      tpl->PrototypeTemplate()->Set(methodName, methodTemplate->GetFunction());
-    }
-    
-#if (NODE_MODULE_VERSION > 0x000B)
-    s_functionTemplates[klass].Reset(v8::Isolate::GetCurrent(), tpl);
-#else
-    NanAssignPersistent(s_functionTemplates[klass], tpl);
-#endif
-  }
-  else {
-    LOG("Getting existing class: " << rb_class2name(klass));
-    
-#if (NODE_MODULE_VERSION > 0x000B)    
-    tpl = Local<FunctionTemplate>::New(v8::Isolate::GetCurrent(), it->second);
-#else
-    tpl = NanNew<FunctionTemplate>(it->second);
-#endif
-  }
-
-  return NanEscapeScope(tpl->GetFunction());
-}
-
-NAN_WEAK_CALLBACK(OwnerWeakCB) {}
-
-RubyObject::RubyObject(VALUE obj, Local<Object> owner) :
-  m_obj(obj), m_owner(NULL)
+RubyObject::RubyObject(VALUE obj) :
+  m_obj(obj)
 {
   rb_gc_register_address(&m_obj);
-  
-  assert(!owner->IsUndefined());
-  m_owner = &NanMakeWeakPersistent(owner, (void*)NULL, OwnerWeakCB)->persistent;
-  m_owner->MarkIndependent();
-  
-  VALUE wrappedObj = Data_Wrap_Struct(s_wrappedClass, NULL, NULL, this);
-  rb_ivar_set(obj, V8_WRAPPER_ID, wrappedObj);
 }
 
 RubyObject::~RubyObject()
 {
-  LOG("~RubyObject");
   rb_gc_unregister_address(&m_obj);
-  rb_ivar_set(m_obj, V8_WRAPPER_ID, Qnil);
 }
 
-NAN_METHOD(RubyObject::CallInstanceMethod)
+// TODO: Should this be a SafeMethodCaller inner class?
+struct Block
 {
-  NanScope();
+  Block(Handle<Function> f)
+  {
+    NanAssignPersistent(func, f);
+    dataObj = Data_Wrap_Struct(RubyObject::BLOCK_WRAPPER_CLASS, NULL, Free, this);
+  }
+    
+  static VALUE Func(VALUE, VALUE data, int argc, const VALUE* rbArgv)
+  {
+    Block* block;
+    Data_Get_Struct(data, Block, block);
+  
+    Local<Function> fn = NanNew<Function>(block->func);
+    // TODO: Should we store args.This() and call it as the receiver?
+    std::vector<Handle<Value> > v8Args(argc);
+    for (int i = 0; i < argc; i++) {
+      v8Args[i] = RubyObject::New(rbArgv[i]);
+    }
+    
+    Handle<Value> res = NanMakeCallback(NanGetCurrentContext()->Global(), fn,
+                                        argc, &v8Args[0]);
+    assert(res->IsObject());                                    
+    return *node::ObjectWrap::Unwrap<RubyObject>(res.As<Object>());
+  }
+    
+  static void Free(void* data)
+  {
+    Block* block = static_cast<Block*>(data);
+    NanDisposePersistent(block->func);
+    delete block;
+  }
+    
+  Persistent<Function> func;
+  VALUE dataObj;
+};
 
-  RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
-  NanReturnValue(CallRubyFromV8(self->m_obj, args));
-}
-
-VALUE RubyObject::CallV8Method(int argc, VALUE* argv, VALUE self)
+struct SafeMethodCaller
 {
-  LOG("In CallV8Method: " <<  rb_id2name(rb_frame_this_func()));
+  SafeMethodCaller(_NAN_METHOD_ARGS_TYPE args) :
+    rubyArgs(args.Length()-1), ex(Qnil), block(NULL)
+  {
+    FillArgs(args);
+  }
   
-  NanScope();
+  SafeMethodCaller(_NAN_METHOD_ARGS_TYPE args, Local<Function> blockFunc) :
+    rubyArgs(args.Length()-2), ex(Qnil), block(new Block(blockFunc))
+  {
+    FillArgs(args);
+  }
   
-  Local<Object> owner = RubyObject::RubyUnwrap(self);
-  VALUE rbName = rb_id2str(rb_frame_this_func());
-  Local<String> v8Name =
-    NanNew<String>(RSTRING_PTR(rbName), RSTRING_LEN(rbName));
-  Local<Value> func = owner->Get(v8Name);
+  void FillArgs(_NAN_METHOD_ARGS_TYPE args)
+  {
+    recv = *node::ObjectWrap::Unwrap<RubyObject>(args.This());
+    
+    assert(args[0]->IsObject());
+    methodID =
+      SYM2ID(*node::ObjectWrap::Unwrap<RubyObject>(args[0].As<Object>()));
   
-  if (func->IsFunction())
-    return CallV8FromRuby(owner, func.As<Function>(), argc, argv);
-  else {
-    rb_raise(rb_eTypeError, "Property '%s' of object %s is not a function",
-             rb_id2name(rb_frame_this_func()), *String::Utf8Value(owner));
+    for (size_t i = 0; i < rubyArgs.size(); i++) {
+      assert(args[i+1]->IsObject());
+      rubyArgs[i] =
+        *node::ObjectWrap::Unwrap<RubyObject>(args[i+1].As<Object>());
+    }
+  }
+  
+  Handle<Value> Call()
+  {
+    // TODO: HandleScope?
+    VALUE res = rb_rescue2(RUBY_METHOD_FUNC(SafeCB), VALUE(this),
+                           RUBY_METHOD_FUNC(RescueCB), VALUE(&ex), rb_eException, NULL);
+    if (ex != Qnil) {
+      Local<Object> errObj = NanNew<Object>();
+      errObj->Set(NanNew<String>("error"), RubyObject::New(ex));
+      return errObj;
+    }
+    
+    return RubyObject::New(res);
+  }
+  
+  static VALUE SafeCB(VALUE data)
+  {
+    const SafeMethodCaller* self = reinterpret_cast<SafeMethodCaller*>(data);
+    
+    if (self->block == NULL) {
+      return rb_funcall2(self->recv, self->methodID, self->rubyArgs.size(),
+                         (VALUE*)&self->rubyArgs[0]);
+    }
+    else {
+      // TODO: Probably not available in Ruby < 1.9
+      return rb_block_call(self->recv, self->methodID, self->rubyArgs.size(),
+                           (VALUE*)&self->rubyArgs[0],
+                           RUBY_METHOD_FUNC(Block::Func), self->block->dataObj);
+    }
+  }
+  
+  static VALUE RescueCB(VALUE data, VALUE ex)
+  {
+    VALUE *storedEx = reinterpret_cast<VALUE*>(data);
+    *storedEx = ex;
+
     return Qnil;
+  }
+
+  VALUE recv;
+  VALUE methodID;
+  std::vector<VALUE> rubyArgs;
+  VALUE ex;
+  Block* block;
+};
+
+NAN_METHOD(RubyObject::CallMethod)
+{
+  NanScope();
+
+  SafeMethodCaller caller(args);
+  NanReturnValue(caller.Call());
+}
+
+// TODO: Does doing it this way really make it safer / less C++ code?
+NAN_METHOD(RubyObject::CallMethodWithBlock)
+{
+  NanScope();
+    
+  assert(args[args.Length()-1]->IsFunction());
+  Local<Function> blockFunc = args[args.Length()-1].As<Function>();
+  
+  SafeMethodCaller caller(args, blockFunc);
+  NanReturnValue(caller.Call());
+}
+
+// TODO: Should this be a member?
+NAN_WEAK_CALLBACK(OwnerWeakCB)
+{
+  RubyObject* self = data.GetParameter();
+  rb_ivar_set(*self, RubyObject::V8_WRAPPER_ID, Qnil);
+}
+
+NAN_METHOD(RubyObject::SetOwner)
+{
+  NanScope();
+  
+  RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
+  assert(args[0]->IsObject());
+  
+  if (rb_obj_frozen_p(self->m_obj) == Qfalse) {
+    VALUE wrappedObj = Data_Wrap_Struct(s_wrappedClass, NULL, NULL, self);
+    rb_ivar_set(self->m_obj, V8_WRAPPER_ID, wrappedObj);
+  
+    self->m_owner = &NanMakeWeakPersistent(args[0].As<Object>(), self, OwnerWeakCB)->persistent;
+    self->m_owner->MarkIndependent();
+  }
+  
+  NanReturnUndefined();
+}
+
+NAN_METHOD(RubyObject::GetOwner)
+{
+  NanScope();
+  
+  RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
+  VALUE wrappedObj = rb_attr_get(self->m_obj, V8_WRAPPER_ID);
+  if (wrappedObj == Qnil)
+    NanReturnUndefined();
+  else {
+    RubyObject* obj;
+    Data_Get_Struct(wrappedObj, RubyObject, obj);
+    NanReturnValue(NanNew<v8::Object>(*obj->m_owner));
   }
 }

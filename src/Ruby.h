@@ -8,18 +8,19 @@
 class Ruby : public node::ObjectWrap
 {
  public:
-  static VALUE BLOCK_WRAPPER_CLASS;
- 
   static void Init(v8::Handle<v8::Object> module);
   static void Cleanup(void*);
  
  private:
+
+  static NAN_METHOD(GetSymbol);
   
-  static NAN_METHOD(New);
-  static NAN_METHOD(GetClass);
-  static NAN_METHOD(DefineClass);
-  static NAN_METHOD(GetMethod);
-  static NAN_METHOD(GetConstant);
+  static NAN_METHOD(V8StrToRuby);
+  static NAN_METHOD(V8NumToRuby);
+  
+  static NAN_METHOD(RubyStrToV8);
+  static NAN_METHOD(RubyBoolToV8);
+  static NAN_METHOD(RubyNumToV8);
   
   // Don't instantiate
   Ruby();

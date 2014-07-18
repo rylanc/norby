@@ -1,15 +1,12 @@
 #include "Ruby.h"
 #include "RubyObject.h"
-#include "RubyModule.h"
-#include "common.h"
+//#include "common.h"
 #include <cstring>
 #include <string>
 
 using namespace v8;
 
-VALUE Ruby::BLOCK_WRAPPER_CLASS;
-
-void Ruby::Init(Handle<Object> module)
+void Ruby::Init(Handle<Object> exports)
 {
   static char* argv[] = { (char*)"norby", (char*)"-e", (char*)"" };
 
@@ -17,147 +14,95 @@ void Ruby::Init(Handle<Object> module)
   ruby_init();
   ruby_options(3, argv);
 
-  BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
-
   node::AtExit(Cleanup);
 
   RubyObject::Init();
-  module->Set(NanNew<String>("exports"),
-              NanNew<FunctionTemplate>(New)->GetFunction());
+  
+  exports->Set(NanNew<String>("Object"), RubyObject::New(rb_cObject));
+  exports->Set(NanNew<String>("RubyValue"), RubyObject::GetRubyValueCtor());
+
+  NODE_SET_METHOD(exports, "getSymbol", GetSymbol);
+  
+  NODE_SET_METHOD(exports, "v8StrToRuby", V8StrToRuby);
+  NODE_SET_METHOD(exports, "v8NumToRuby", V8NumToRuby);
+  
+  NODE_SET_METHOD(exports, "rubyStrToV8", RubyStrToV8);
+  // TODO: Do we need this?
+  NODE_SET_METHOD(exports, "rubyBoolToV8", RubyBoolToV8);
+  NODE_SET_METHOD(exports, "rubyNumToV8", RubyNumToV8);
 }
 
 void Ruby::Cleanup(void*)
 {
-  LOG("Cleaning up!");
-  RubyObject::Cleanup();
   ruby_cleanup(0);
 }
 
-NAN_METHOD(Ruby::New)
+NAN_METHOD(Ruby::GetSymbol)
 {
   NanScope();
   
-  assert(args[0]->IsObject());
-  Local<Object> ctors = args[0].As<Object>();
+  VALUE sym = ID2SYM(rb_intern(*String::Utf8Value(args[0])));
+
+  NanReturnValue(RubyObject::New(sym));
+}
+
+NAN_METHOD(Ruby::V8StrToRuby)
+{
+  NanScope();
   
-  Local<Function> createCtor =
-    ctors->Get(NanNew<String>("createCtor")).As<Function>();
-  assert(createCtor->IsFunction());
-  RubyModule::SetCreateCtor(createCtor);
+  // TODO: We should handle encoding here
+  Handle<String> str = args[0].As<String>();
+  VALUE rbStr = rb_str_new(NULL, str->Utf8Length());
+  str->WriteUtf8(RSTRING_PTR(rbStr));
 
-  Local<Object> bindings = NanNew<Object>();
-  NODE_SET_METHOD(bindings, "_getClass", GetClass);
-  NODE_SET_METHOD(bindings, "_defineClass", DefineClass);
-  NODE_SET_METHOD(bindings, "getMethod", GetMethod);
-  // TODO: Maybe we should load the constants here and place them in an object?
-  NODE_SET_METHOD(bindings, "getConstant", GetConstant);
-
-  NanReturnValue(bindings);
+  NanReturnValue(RubyObject::New(rbStr));
 }
 
-struct ConstGetter
+NAN_METHOD(Ruby::V8NumToRuby)
 {
-  ConstGetter(Handle<Value> nv) : nameVal(nv) {}
-  VALUE operator()() const
-  {
-    NanScope();
+  NanScope();
+  
+  Handle<Value> v8Num = args[0];
+  VALUE rbNum;
+  if (v8Num->IsInt32())
+    rbNum = INT2NUM(v8Num->Int32Value());
+  else if (v8Num->IsUint32())
+    rbNum = UINT2NUM(v8Num->Uint32Value());
+  else if (v8Num->IsNumber())
+    rbNum = rb_float_new(v8Num->NumberValue());
 
-    Local<String> constName = nameVal->ToString();
-    String::Utf8Value constStr(constName);
+  NanReturnValue(RubyObject::New(rbNum));
+}
 
-    ID id;
-    VALUE mod;
-    const char* split = std::strstr(*constStr, "::");
-    if (split) {
-      id = rb_intern(split + 2);
-      mod = rb_const_get(rb_cObject, rb_intern2(*constStr, split - *constStr));
-    }
-    else {
-      id = rb_intern2(*constStr, constStr.length());
-      mod = rb_cObject;
-    }
+NAN_METHOD(Ruby::RubyStrToV8)
+{
+  NanScope();
+  
+  VALUE rbStr = *node::ObjectWrap::Unwrap<RubyObject>(args[0].As<Object>());
 
-    return rb_const_get(mod, id);
-  }
+  NanReturnValue(NanNew<String>(RSTRING_PTR(rbStr), RSTRING_LEN(rbStr)));
+}
 
-  Handle<Value> nameVal;
-};
+NAN_METHOD(Ruby::RubyBoolToV8)
+{
+  NanScope();
+  
+  VALUE val = *node::ObjectWrap::Unwrap<RubyObject>(args[0].As<Object>());
 
-// TODO: Do we still need this and .getConstant?
-NAN_METHOD(Ruby::GetClass)
+  if (RTEST(val))
+    NanReturnValue(NanTrue());
+  else
+    NanReturnValue(NanFalse());
+}
+
+NAN_METHOD(Ruby::RubyNumToV8)
 {
   NanScope();
 
-  VALUE klass;
-  SAFE_RUBY_CALL(klass, ConstGetter(args[0]));
-
-  // TODO: rb_is_class_id?
-  if (TYPE(klass) != T_CLASS) {
-    std::string msg(*String::Utf8Value(args[0]));
-    msg.append(" is not a class");
-    NanThrowTypeError(msg.c_str());
-    NanReturnUndefined();
-  }
-
-  NanReturnValue(RubyModule::ToV8(klass));
+  VALUE val = *node::ObjectWrap::Unwrap<RubyObject>(args[0].As<Object>());
+  
+  // TODO: Fix this
+  NanReturnValue(NanNew<Number>(rb_num2dbl(val)));
 }
 
-struct ClassDefiner
-{
-  ClassDefiner(Handle<Value> nv, VALUE s) : nameVal(nv), super(s) {}
-  VALUE operator()() const
-  {
-    NanScope();
-
-    Local<String> className = nameVal->ToString();
-    return rb_define_class(*String::Utf8Value(className), super);
-  }
-
-  Handle<Value> nameVal;
-  VALUE super;
-};
-
-NAN_METHOD(Ruby::DefineClass)
-{
-  NanScope();
-
-  LOG("Inherit called for " << *String::Utf8Value(args[0]));
-
-  VALUE super;
-  SAFE_RUBY_CALL(super, ConstGetter(args[1]));
-  VALUE klass;
-  SAFE_RUBY_CALL(klass, ClassDefiner(args[0], super));
-
-  NanReturnValue(RubyModule::ToV8(klass));
-}
-
-NAN_METHOD(CallMethod)
-{
-  NanScope();
-  NanReturnValue(CallRubyFromV8(rb_cObject, args));
-}
-
-// TODO: Should this throw immediately if the function doesnt exist?
-NAN_METHOD(Ruby::GetMethod)
-{
-  NanScope();
-
-  Local<String> name = args[0]->ToString();
-  ID methodID = rb_intern(*String::Utf8Value(name));
-  Local<Function> func =
-    NanNew<FunctionTemplate>(CallMethod, EXTERNAL_WRAP((void*)methodID))->GetFunction();
-  func->SetName(name);
-
-  NanReturnValue(func);
-}
-
-NAN_METHOD(Ruby::GetConstant)
-{
-  NanScope();
-
-  VALUE constant;
-  SAFE_RUBY_CALL(constant, ConstGetter(args[0]));
-
-  // TODO: Should we allow getting classes this way? Maybe throw an exception?
-  NanReturnValue(rubyToV8(constant));
-}
+NODE_MODULE(norby, Ruby::Init)

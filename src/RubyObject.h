@@ -4,55 +4,51 @@
 #include <node.h>
 #include <nan.h>
 #include <ruby.h>
-#include <map>
+//#include <map>
+
+#ifdef _DEBUG
+#include <iostream>
+#define LOG(x) std::cout << x << std::endl
+#else
+#define LOG(x)
+#endif
 
 class RubyObject : public node::ObjectWrap
 {
  public:
-  static const char* RUBY_OBJECT_TAG;
   static ID V8_WRAPPER_ID;
+  static VALUE BLOCK_WRAPPER_CLASS;
  
   static void Init();
-  static void Cleanup();
   
-  static v8::Local<v8::Object> ToV8(VALUE rbObj, v8::Local<v8::Object> owner);
-  static VALUE FromV8(v8::Handle<v8::Object> owner);
-  
-  static inline v8::Local<v8::Object> RubyUnwrap(VALUE self)
+  static v8::Local<v8::Object> New(VALUE obj);
+  // TODO: Is this right?
+  operator VALUE()
   {
-    VALUE wrappedObj = rb_attr_get(self, V8_WRAPPER_ID);
-    if (wrappedObj == Qnil) {
-      return v8::Local<v8::Object>();
-    }
-    else {
-      RubyObject* obj;
-      Data_Get_Struct(wrappedObj, RubyObject, obj);
-      return NanNew<v8::Object>(*obj->m_owner);
-    }
+    return m_obj;
   }
   
-  static VALUE CallV8Method(int argc, VALUE* argv, VALUE self);
+  static v8::Local<v8::Function> GetRubyValueCtor()
+  {
+    return NanNew<v8::Function>(s_constructor);
+  }
 
  private:
-  RubyObject(VALUE obj, v8::Local<v8::Object> owner);
+  RubyObject(VALUE obj);
   ~RubyObject();
   
-  static v8::Local<v8::Function> GetCtor(VALUE klass);
-
-  static NAN_METHOD(CallInstanceMethod);
+  static NAN_METHOD(CallMethod);
+  static NAN_METHOD(CallMethodWithBlock);
+  static NAN_METHOD(SetOwner);
+  static NAN_METHOD(GetOwner);
+  
 
   VALUE m_obj;
   // The pure JS object that holds the reference to this
   v8::Persistent<v8::Object>* m_owner;
   
-#if (NODE_MODULE_VERSION > 0x000B)
-  typedef std::map<VALUE, v8::CopyablePersistentTraits<v8::FunctionTemplate>::CopyablePersistent> TplMap;
-#else
-  typedef std::map<VALUE, v8::Persistent<v8::FunctionTemplate> > TplMap;
-#endif
-
-  static TplMap s_functionTemplates;
   static VALUE s_wrappedClass;
+  static v8::Persistent<v8::Function> s_constructor;
 };
 
 #endif // NORBY_RUBY_OBJECT_H_
