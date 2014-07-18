@@ -1,6 +1,5 @@
 #include "Ruby.h"
-#include "RubyObject.h"
-//#include "common.h"
+#include "RubyValue.h"
 #include <cstring>
 #include <string>
 
@@ -16,13 +15,14 @@ void Ruby::Init(Handle<Object> exports)
 
   node::AtExit(Cleanup);
 
-  RubyObject::Init();
+  RubyValue::Init();
   
-  exports->Set(NanNew<String>("Object"), RubyObject::New(rb_cObject));
-  exports->Set(NanNew<String>("RubyValue"), RubyObject::GetRubyValueCtor());
+  exports->Set(NanNew<String>("Object"), RubyValue::New(rb_cObject));
+  exports->Set(NanNew<String>("RubyValue"), RubyValue::GetRubyValueCtor());
 
   NODE_SET_METHOD(exports, "getSymbol", GetSymbol);
   
+  // TODO: Should these be RubyValue members?
   NODE_SET_METHOD(exports, "v8StrToRuby", V8StrToRuby);
   NODE_SET_METHOD(exports, "v8NumToRuby", V8NumToRuby);
   
@@ -43,7 +43,7 @@ NAN_METHOD(Ruby::GetSymbol)
   
   VALUE sym = ID2SYM(rb_intern(*String::Utf8Value(args[0])));
 
-  NanReturnValue(RubyObject::New(sym));
+  NanReturnValue(RubyValue::New(sym));
 }
 
 NAN_METHOD(Ruby::V8StrToRuby)
@@ -55,7 +55,7 @@ NAN_METHOD(Ruby::V8StrToRuby)
   VALUE rbStr = rb_str_new(NULL, str->Utf8Length());
   str->WriteUtf8(RSTRING_PTR(rbStr));
 
-  NanReturnValue(RubyObject::New(rbStr));
+  NanReturnValue(RubyValue::New(rbStr));
 }
 
 NAN_METHOD(Ruby::V8NumToRuby)
@@ -71,14 +71,14 @@ NAN_METHOD(Ruby::V8NumToRuby)
   else if (v8Num->IsNumber())
     rbNum = rb_float_new(v8Num->NumberValue());
 
-  NanReturnValue(RubyObject::New(rbNum));
+  NanReturnValue(RubyValue::New(rbNum));
 }
 
 NAN_METHOD(Ruby::RubyStrToV8)
 {
   NanScope();
   
-  VALUE rbStr = *node::ObjectWrap::Unwrap<RubyObject>(args[0].As<Object>());
+  VALUE rbStr = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
 
   NanReturnValue(NanNew<String>(RSTRING_PTR(rbStr), RSTRING_LEN(rbStr)));
 }
@@ -87,7 +87,7 @@ NAN_METHOD(Ruby::RubyBoolToV8)
 {
   NanScope();
   
-  VALUE val = *node::ObjectWrap::Unwrap<RubyObject>(args[0].As<Object>());
+  VALUE val = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
 
   if (RTEST(val))
     NanReturnValue(NanTrue());
@@ -99,7 +99,7 @@ NAN_METHOD(Ruby::RubyNumToV8)
 {
   NanScope();
 
-  VALUE val = *node::ObjectWrap::Unwrap<RubyObject>(args[0].As<Object>());
+  VALUE val = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
   
   // TODO: Fix this
   NanReturnValue(NanNew<Number>(rb_num2dbl(val)));

@@ -13,7 +13,7 @@
 #define LOG(x)
 #endif
 
-class RubyObject : public node::ObjectWrap
+class RubyValue : public node::ObjectWrap
 {
  public:
   static ID V8_WRAPPER_ID;
@@ -34,8 +34,8 @@ class RubyObject : public node::ObjectWrap
   }
 
  private:
-  RubyObject(VALUE obj);
-  ~RubyObject();
+  RubyValue(VALUE obj);
+  ~RubyValue();
   
   static NAN_METHOD(CallMethod);
   static NAN_METHOD(CallMethodWithBlock);

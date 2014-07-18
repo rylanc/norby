@@ -1,4 +1,4 @@
-#include "RubyObject.h"
+#include "RubyValue.h"
 #include <vector>
 #include <string>
 
@@ -6,20 +6,20 @@ using namespace v8;
 
 VALUE trueArg = Qtrue;
 
-ID RubyObject::V8_WRAPPER_ID;
-VALUE RubyObject::s_wrappedClass;
-VALUE RubyObject::BLOCK_WRAPPER_CLASS;
+ID RubyValue::V8_WRAPPER_ID;
+VALUE RubyValue::s_wrappedClass;
+VALUE RubyValue::BLOCK_WRAPPER_CLASS;
 
-Persistent<Function> RubyObject::s_constructor;
+Persistent<Function> RubyValue::s_constructor;
 
-void RubyObject::Init()
+void RubyValue::Init()
 {
-  s_wrappedClass = rb_define_class("WrappedRubyObject", rb_cObject);
+  s_wrappedClass = rb_define_class("WrappedRubyValue", rb_cObject);
   V8_WRAPPER_ID = rb_intern("@_wrappedObject");
   BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
   
   Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>();
-  tpl->SetClassName(NanNew<String>("RubyObject"));
+  tpl->SetClassName(NanNew<String>("RubyValue"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   
   tpl->PrototypeTemplate()->Set(NanNew<String>("callMethod"),
@@ -34,24 +34,24 @@ void RubyObject::Init()
   NanAssignPersistent(s_constructor, tpl->GetFunction());
 }
 
-Local<Object> RubyObject::New(VALUE rbObj)
+Local<Object> RubyValue::New(VALUE rbObj)
 {
   NanEscapableScope();
   
-  RubyObject* self = new RubyObject(rbObj);
+  RubyValue* self = new RubyValue(rbObj);
   Local<Object> v8Obj = NanNew<Function>(s_constructor)->NewInstance();
   self->Wrap(v8Obj);
   
   return NanEscapeScope(v8Obj);
 }
 
-RubyObject::RubyObject(VALUE obj) :
+RubyValue::RubyValue(VALUE obj) :
   m_obj(obj)
 {
   rb_gc_register_address(&m_obj);
 }
 
-RubyObject::~RubyObject()
+RubyValue::~RubyValue()
 {
   rb_gc_unregister_address(&m_obj);
 }
@@ -62,7 +62,7 @@ struct Block
   Block(Handle<Function> f)
   {
     NanAssignPersistent(func, f);
-    dataObj = Data_Wrap_Struct(RubyObject::BLOCK_WRAPPER_CLASS, NULL, Free, this);
+    dataObj = Data_Wrap_Struct(RubyValue::BLOCK_WRAPPER_CLASS, NULL, Free, this);
   }
     
   static VALUE Func(VALUE, VALUE data, int argc, const VALUE* rbArgv)
@@ -74,13 +74,13 @@ struct Block
     // TODO: Should we store args.This() and call it as the receiver?
     std::vector<Handle<Value> > v8Args(argc);
     for (int i = 0; i < argc; i++) {
-      v8Args[i] = RubyObject::New(rbArgv[i]);
+      v8Args[i] = RubyValue::New(rbArgv[i]);
     }
     
     Handle<Value> res = NanMakeCallback(NanGetCurrentContext()->Global(), fn,
                                         argc, &v8Args[0]);
     assert(res->IsObject());                                    
-    return *node::ObjectWrap::Unwrap<RubyObject>(res.As<Object>());
+    return *node::ObjectWrap::Unwrap<RubyValue>(res.As<Object>());
   }
     
   static void Free(void* data)
@@ -110,16 +110,16 @@ struct SafeMethodCaller
   
   void FillArgs(_NAN_METHOD_ARGS_TYPE args)
   {
-    recv = *node::ObjectWrap::Unwrap<RubyObject>(args.This());
+    recv = *node::ObjectWrap::Unwrap<RubyValue>(args.This());
     
     assert(args[0]->IsObject());
     methodID =
-      SYM2ID(*node::ObjectWrap::Unwrap<RubyObject>(args[0].As<Object>()));
+      SYM2ID(*node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>()));
   
     for (size_t i = 0; i < rubyArgs.size(); i++) {
       assert(args[i+1]->IsObject());
       rubyArgs[i] =
-        *node::ObjectWrap::Unwrap<RubyObject>(args[i+1].As<Object>());
+        *node::ObjectWrap::Unwrap<RubyValue>(args[i+1].As<Object>());
     }
   }
   
@@ -130,11 +130,11 @@ struct SafeMethodCaller
                            RUBY_METHOD_FUNC(RescueCB), VALUE(&ex), rb_eException, NULL);
     if (ex != Qnil) {
       Local<Object> errObj = NanNew<Object>();
-      errObj->Set(NanNew<String>("error"), RubyObject::New(ex));
+      errObj->Set(NanNew<String>("error"), RubyValue::New(ex));
       return errObj;
     }
     
-    return RubyObject::New(res);
+    return RubyValue::New(res);
   }
   
   static VALUE SafeCB(VALUE data)
@@ -168,7 +168,7 @@ struct SafeMethodCaller
   Block* block;
 };
 
-NAN_METHOD(RubyObject::CallMethod)
+NAN_METHOD(RubyValue::CallMethod)
 {
   NanScope();
 
@@ -177,7 +177,7 @@ NAN_METHOD(RubyObject::CallMethod)
 }
 
 // TODO: Does doing it this way really make it safer / less C++ code?
-NAN_METHOD(RubyObject::CallMethodWithBlock)
+NAN_METHOD(RubyValue::CallMethodWithBlock)
 {
   NanScope();
     
@@ -191,15 +191,15 @@ NAN_METHOD(RubyObject::CallMethodWithBlock)
 // TODO: Should this be a member?
 NAN_WEAK_CALLBACK(OwnerWeakCB)
 {
-  RubyObject* self = data.GetParameter();
-  rb_ivar_set(*self, RubyObject::V8_WRAPPER_ID, Qnil);
+  RubyValue* self = data.GetParameter();
+  rb_ivar_set(*self, RubyValue::V8_WRAPPER_ID, Qnil);
 }
 
-NAN_METHOD(RubyObject::SetOwner)
+NAN_METHOD(RubyValue::SetOwner)
 {
   NanScope();
   
-  RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
+  RubyValue *self = node::ObjectWrap::Unwrap<RubyValue>(args.This());
   assert(args[0]->IsObject());
   
   if (rb_obj_frozen_p(self->m_obj) == Qfalse) {
@@ -213,17 +213,17 @@ NAN_METHOD(RubyObject::SetOwner)
   NanReturnUndefined();
 }
 
-NAN_METHOD(RubyObject::GetOwner)
+NAN_METHOD(RubyValue::GetOwner)
 {
   NanScope();
   
-  RubyObject *self = node::ObjectWrap::Unwrap<RubyObject>(args.This());
+  RubyValue *self = node::ObjectWrap::Unwrap<RubyValue>(args.This());
   VALUE wrappedObj = rb_attr_get(self->m_obj, V8_WRAPPER_ID);
   if (wrappedObj == Qnil)
     NanReturnUndefined();
   else {
-    RubyObject* obj;
-    Data_Get_Struct(wrappedObj, RubyObject, obj);
+    RubyValue* obj;
+    Data_Get_Struct(wrappedObj, RubyValue, obj);
     NanReturnValue(NanNew<v8::Object>(*obj->m_owner));
   }
 }
