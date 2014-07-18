@@ -1,7 +1,7 @@
-var ctors = require('./lib/ctors'),
-    ruby = require('./lib/ruby'),
+var ruby = require('./lib/ruby'),
     convert = require('./lib/convert'),
     symbols = require('./lib/symbols'),
+    modules = require('./lib/modules'),
     util = require('util');
 
 var getClass = module.exports.getClass = function(name) {
@@ -9,7 +9,7 @@ var getClass = module.exports.getClass = function(name) {
   if (!rubyClass.isA(ruby.Class))
     throw new TypeError(name + ' is not a class');
 
-  return ctors.getCtor(rubyClass);
+  return modules.convertClass(rubyClass);
 };
 
 module.exports.newInstance = function() {
@@ -17,12 +17,12 @@ module.exports.newInstance = function() {
   return new (Cls.bind.apply(Cls, arguments))();
 };
 
-var Proc = ctors.getCtor(ruby.Proc);
+var Proc = modules.convertClass(ruby.Proc);
 module.exports.inherits = function(ctor, superName) {
   var superClass = ruby.getConst(superName);
   var rubyClass = ruby.Class.callMethod(symbols.new, superClass);
   ruby.Object.callMethod(symbols.getSym('const_set'), ruby.v8StrToRuby(ctor.name), rubyClass);
-  var SuperCtor = ctors.getCtor(rubyClass);
+  var SuperCtor = modules.convertClass(rubyClass);
   //var SuperCtor = ruby._defineClass(ctor.name, superName);
   
   // TODO: Do class methods work here? Should they even work?

@@ -27,7 +27,6 @@ void Ruby::Init(Handle<Object> exports)
   NODE_SET_METHOD(exports, "v8NumToRuby", V8NumToRuby);
   
   NODE_SET_METHOD(exports, "rubyStrToV8", RubyStrToV8);
-  // TODO: Do we need this?
   NODE_SET_METHOD(exports, "rubyBoolToV8", RubyBoolToV8);
   NODE_SET_METHOD(exports, "rubyNumToV8", RubyNumToV8);
 }
