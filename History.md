@@ -1,3 +1,9 @@
+0.1.3 / 2014-07-18
+==================
+ 
+ * Fixed a crash that can happen after a wrapped Ruby object is GCed
+ * Updated documentation
+
 0.1.2 / 2014-07-16
 ==================
 
