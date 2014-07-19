@@ -50,7 +50,7 @@ describe('Ruby classes', function() {
     expect(result).to.equal('hello, stan');
   });
   
-  it.skip('should properly unwrap Ruby classes when passed as args', function() {
+  it('should properly unwrap Ruby classes when passed as args', function() {
     var Time = ruby.getClass('Time');
     var t = new Time();
     var result = t['is_a?'](Time);

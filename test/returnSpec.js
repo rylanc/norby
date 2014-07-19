@@ -74,7 +74,7 @@ describe('return', function() {
       expect(result).to.equal(5234567890987654321);
     });
     
-    it.skip('should return a string when it can\'t fit', function() {
+    it('should return a string when it can\'t fit', function() {
       var t = new Returner();
       var result = t.ret_hugenum();
       expect(result).to.be.a('string');

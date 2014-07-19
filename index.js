@@ -37,7 +37,7 @@ module.exports.inherits = function(ctor, superName) {
       var self = convert.rubyToV8(ruby.Object.callMethod(symbols.eval,
         ruby.v8StrToRuby('self'),
         ruby.Object.callMethod(symbols.getSym('binding'))));
-      console.log('self: ' + self.toString());
+      //console.log('self: ' + self.toString());
       return fn.apply(self, arguments);
     });
 

@@ -38,7 +38,7 @@ describe('Ruby modules', function() {
     expect(result).to.equal(3.14159);
   });
   
-  it.skip('should alias inspect() to inspect(depth)', function() {
+  it('should alias inspect() to inspect(depth)', function() {
     var MyMod = ruby.getConstant('MyMod');
     expect(MyMod).itself.to.respondTo('inspect');
     
