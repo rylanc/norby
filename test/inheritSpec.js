@@ -26,7 +26,7 @@ describe('.inherits', function() {
     return 1234;
   });
   
-  it.skip('should throw when the subclass name matches an existing ruby class',
+  it('should throw when the subclass name matches an existing ruby class',
   function() {
     function Time() {
       Time.super_.call(this);

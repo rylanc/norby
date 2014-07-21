@@ -20,29 +20,19 @@ module.exports.newInstance = function() {
 var Proc = modules.convertClass(ruby.Proc);
 module.exports.inherits = function(ctor, superName) {
   var superClass = ruby.getConst(superName);
-  var rubyClass = ruby.Class.callMethod(symbols.new, superClass);
-  ruby.Object.callMethod(symbols.getSym('const_set'), ruby.v8StrToRuby(ctor.name), rubyClass);
-  var SuperCtor = modules.convertClass(rubyClass);
-  //var SuperCtor = ruby._defineClass(ctor.name, superName);
-  
-  // TODO: Do class methods work here? Should they even work?
-  
-  util.inherits(ctor, SuperCtor);
+  modules.defineClass(ctor, superClass);
   
   ctor.defineMethod = function(name, fn) {
     if (typeof fn !== 'function')
       throw new TypeError('fn must be a function: ' + fn);
 
     var proc = new Proc(function() {
-      var self = convert.rubyToV8(ruby.Object.callMethod(symbols.eval,
-        ruby.v8StrToRuby('self'),
-        ruby.Object.callMethod(symbols.getSym('binding'))));
-      //console.log('self: ' + self.toString());
+      var self = ruby.getSelf();
       return fn.apply(self, arguments);
     });
 
-    SuperCtor._rubyMod.callMethod(symbols.getSym('define_method'),
-      symbols.getSym(name), proc._rubyObj);
+    ctor._rubyMod.callMethod(symbols.define_method, symbols.getSym(name),
+      proc._rubyObj);
     this.prototype[name] = fn;
   };
 };
