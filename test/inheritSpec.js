@@ -86,7 +86,7 @@ describe('.inherits', function() {
       expect(fn).to.throw(ReferenceError);
     });
     
-    it.skip('should work with instanceof', function() {
+    it('should work with instanceof', function() {
       var InheritTester = ruby.getClass('InheritTester');
       var d = new Derived();
       expect(d).to.be.an.instanceof(InheritTester);
