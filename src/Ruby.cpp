@@ -1,7 +1,5 @@
 #include "Ruby.h"
 #include "RubyValue.h"
-#include <cstring>
-#include <string>
 
 using namespace v8;
 

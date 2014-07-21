@@ -1,6 +1,10 @@
 var expect = require('chai').expect,
     ruby = require('../index');
     
+before(function() {
+  console.log('Ruby version: ' + ruby.getConstant('RUBY_VERSION'));
+});
+    
 describe('.require', function() {
   
   it('shouldn\'t throw on valid file', function() {

@@ -1,10 +1,7 @@
 #include "RubyValue.h"
 #include <vector>
-#include <string>
 
 using namespace v8;
-
-VALUE trueArg = Qtrue;
 
 ID RubyValue::V8_WRAPPER_ID;
 VALUE RubyValue::s_wrappedClass;

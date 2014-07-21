@@ -4,7 +4,6 @@
 #include <node.h>
 #include <nan.h>
 #include <ruby.h>
-//#include <map>
 
 #ifdef _DEBUG
 #include <iostream>
