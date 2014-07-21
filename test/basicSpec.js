@@ -127,6 +127,7 @@ describe('.getConstant', function() {
     expect(MY_CONST).to.equal('abcde');
   });
   
+  // TODO: Should this work with further nested constants? (MyMod::ModClass::INNER_CONST)
   it('should return class constants', function() {
     var MY_CONST = ruby.getConstant('ClassTester::MY_CONST');
     expect(MY_CONST).to.deep.equal([1, 2]);
