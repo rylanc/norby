@@ -44,7 +44,7 @@ npm test
 ## What's missing
 
 norby is currently in an early beta state. Check back for updates as features
-are implemented. Feel free to add issue for any bugs or missing features.
+are implemented. Feel free to add an issue for any bugs or missing features.
 
  - Windows support. node.js is built with Visual Studio while most Windows Ruby
    installers use [MinGW](http://www.mingw.org). It may work if you build Ruby
