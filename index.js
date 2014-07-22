@@ -1,8 +1,7 @@
 var ruby = require('./lib/ruby'),
     convert = require('./lib/convert'),
     symbols = require('./lib/symbols'),
-    modules = require('./lib/modules'),
-    util = require('util');
+    modules = require('./lib/modules');
 
 var getClass = module.exports.getClass = function(name) {
   var rubyClass = ruby.getConst(name);
@@ -38,23 +37,23 @@ module.exports.inherits = function(ctor, superName) {
 };
 
 module.exports.require = function(name) {
-  ruby.Object.callMethod(symbols.require, ruby.v8StrToRuby(name));
+  ruby.Object.callMethod(symbols.require, ruby.jsStrToRuby(name));
 };
 
 // TODO: Other arguments. Also, we should add unit tests for those
 module.exports.eval = function(code) {
-  return convert.rubyToV8(ruby.Object.callMethod(symbols.eval,
-    ruby.v8StrToRuby(code)));
+  return convert.rubyToJS(ruby.Object.callMethod(symbols.eval,
+    ruby.jsStrToRuby(code)));
 };
 
 module.exports.getMethod = function(name) {
   var methodSym = symbols.getSym(name);
   return function() {
     var rbArgs = convert.argsToRuby.apply(methodSym, arguments);
-    return convert.rubyToV8(ruby.Object.callMethodWithArgs(rbArgs));
+    return convert.rubyToJS(ruby.Object.callMethodWithArgs(rbArgs));
   };
 };
 
 module.exports.getConstant = function(name) {
-  return convert.rubyToV8(ruby.getConst(name));
+  return convert.rubyToJS(ruby.getConst(name));
 };

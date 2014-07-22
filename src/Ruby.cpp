@@ -21,12 +21,12 @@ void Ruby::Init(Handle<Object> exports)
   NODE_SET_METHOD(exports, "getSymbol", GetSymbol);
   
   // TODO: Should these be RubyValue members?
-  NODE_SET_METHOD(exports, "v8StrToRuby", V8StrToRuby);
-  NODE_SET_METHOD(exports, "v8NumToRuby", V8NumToRuby);
+  NODE_SET_METHOD(exports, "jsStrToRuby", JsStrToRuby);
+  NODE_SET_METHOD(exports, "jsNumToRuby", JsNumToRuby);
   
-  NODE_SET_METHOD(exports, "rubyStrToV8", RubyStrToV8);
-  NODE_SET_METHOD(exports, "rubyBoolToV8", RubyBoolToV8);
-  NODE_SET_METHOD(exports, "rubyNumToV8", RubyNumToV8);
+  NODE_SET_METHOD(exports, "rubyStrToJS", RubyStrToJS);
+  NODE_SET_METHOD(exports, "rubyBoolToJS", RubyBoolToJS);
+  NODE_SET_METHOD(exports, "rubyNumToJS", RubyNumToJS);
 }
 
 void Ruby::Cleanup(void*)
@@ -43,7 +43,7 @@ NAN_METHOD(Ruby::GetSymbol)
   NanReturnValue(RubyValue::New(sym));
 }
 
-NAN_METHOD(Ruby::V8StrToRuby)
+NAN_METHOD(Ruby::JsStrToRuby)
 {
   NanScope();
   
@@ -55,7 +55,7 @@ NAN_METHOD(Ruby::V8StrToRuby)
   NanReturnValue(RubyValue::New(rbStr));
 }
 
-NAN_METHOD(Ruby::V8NumToRuby)
+NAN_METHOD(Ruby::JsNumToRuby)
 {
   NanScope();
   
@@ -71,7 +71,7 @@ NAN_METHOD(Ruby::V8NumToRuby)
   NanReturnValue(RubyValue::New(rbNum));
 }
 
-NAN_METHOD(Ruby::RubyStrToV8)
+NAN_METHOD(Ruby::RubyStrToJS)
 {
   NanScope();
   
@@ -80,7 +80,7 @@ NAN_METHOD(Ruby::RubyStrToV8)
   NanReturnValue(NanNew<String>(RSTRING_PTR(rbStr), RSTRING_LEN(rbStr)));
 }
 
-NAN_METHOD(Ruby::RubyBoolToV8)
+NAN_METHOD(Ruby::RubyBoolToJS)
 {
   NanScope();
   
@@ -92,7 +92,7 @@ NAN_METHOD(Ruby::RubyBoolToV8)
     NanReturnValue(NanFalse());
 }
 
-NAN_METHOD(Ruby::RubyNumToV8)
+NAN_METHOD(Ruby::RubyNumToJS)
 {
   NanScope();
 

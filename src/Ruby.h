@@ -15,12 +15,12 @@ class Ruby : public node::ObjectWrap
 
   static NAN_METHOD(GetSymbol);
   
-  static NAN_METHOD(V8StrToRuby);
-  static NAN_METHOD(V8NumToRuby);
+  static NAN_METHOD(JsStrToRuby);
+  static NAN_METHOD(JsNumToRuby);
   
-  static NAN_METHOD(RubyStrToV8);
-  static NAN_METHOD(RubyBoolToV8);
-  static NAN_METHOD(RubyNumToV8);
+  static NAN_METHOD(RubyStrToJS);
+  static NAN_METHOD(RubyBoolToJS);
+  static NAN_METHOD(RubyNumToJS);
   
   // Don't instantiate
   Ruby();
