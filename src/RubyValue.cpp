@@ -32,6 +32,8 @@ void RubyValue::Init()
     NanNew<FunctionTemplate>(SetOwner)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("getOwner"),
     NanNew<FunctionTemplate>(GetOwner)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getType"),
+    NanNew<FunctionTemplate>(GetType)->GetFunction());
     
   NanAssignPersistent(s_constructor, tpl->GetFunction());
 }
@@ -43,8 +45,6 @@ Local<Object> RubyValue::New(VALUE rbObj)
   RubyValue* self = new RubyValue(rbObj);
   Local<Object> v8Obj = NanNew<Function>(s_constructor)->NewInstance();
   self->Wrap(v8Obj);
-  
-  v8Obj->Set(NanNew<String>("type"), NanNew<Integer>(TYPE(rbObj)));
   
   return NanEscapeScope(v8Obj);
 }
@@ -245,4 +245,12 @@ NAN_METHOD(RubyValue::GetOwner)
     Data_Get_Struct(wrappedObj, RubyValue, obj);
     NanReturnValue(NanNew<v8::Object>(*obj->m_owner));
   }
+}
+
+NAN_METHOD(RubyValue::GetType)
+{
+  NanScope();
+  
+  RubyValue* self = node::ObjectWrap::Unwrap<RubyValue>(args.This());
+  NanReturnValue(NanNew<Integer>(TYPE(*self)));
 }

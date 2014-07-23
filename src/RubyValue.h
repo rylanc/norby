@@ -40,6 +40,7 @@ class RubyValue : public node::ObjectWrap
   static NAN_METHOD(CallMethodWithBlock);
   static NAN_METHOD(SetOwner);
   static NAN_METHOD(GetOwner);
+  static NAN_METHOD(GetType);
   
 
   VALUE m_obj;
