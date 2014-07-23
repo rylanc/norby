@@ -20,7 +20,8 @@ class Ruby : public node::ObjectWrap
   
   static NAN_METHOD(RubyStrToJS);
   static NAN_METHOD(RubyBoolToJS);
-  static NAN_METHOD(RubyNumToJS);
+  static NAN_METHOD(RubyFixnumToJS);
+  static NAN_METHOD(RubyFloatToJS);
   
   // Don't instantiate
   Ruby();

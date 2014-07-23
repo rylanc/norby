@@ -1,7 +1,11 @@
 #include "Ruby.h"
 #include "RubyValue.h"
+#include <limits>
 
 using namespace v8;
+
+const int32_t MIN_INT32 = std::numeric_limits<int32_t>::min();
+const int32_t MAX_INT32 = std::numeric_limits<int32_t>::max();
 
 void Ruby::Init(Handle<Object> exports)
 {
@@ -26,7 +30,8 @@ void Ruby::Init(Handle<Object> exports)
   
   NODE_SET_METHOD(exports, "rubyStrToJS", RubyStrToJS);
   NODE_SET_METHOD(exports, "rubyBoolToJS", RubyBoolToJS);
-  NODE_SET_METHOD(exports, "rubyNumToJS", RubyNumToJS);
+  NODE_SET_METHOD(exports, "rubyFixnumToJS", RubyFixnumToJS);
+  NODE_SET_METHOD(exports, "rubyFloatToJS", RubyFloatToJS);
 }
 
 void Ruby::Cleanup(void*)
@@ -60,7 +65,7 @@ NAN_METHOD(Ruby::JsNumToRuby)
   NanScope();
   
   Handle<Value> v8Num = args[0];
-  VALUE rbNum;
+  VALUE rbNum = Qnil;
   if (v8Num->IsInt32())
     rbNum = INT2NUM(v8Num->Int32Value());
   else if (v8Num->IsUint32())
@@ -92,14 +97,27 @@ NAN_METHOD(Ruby::RubyBoolToJS)
     NanReturnValue(NanFalse());
 }
 
-NAN_METHOD(Ruby::RubyNumToJS)
+NAN_METHOD(Ruby::RubyFixnumToJS)
 {
   NanScope();
-
+  
   VALUE val = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
   
-  // TODO: Fix this
-  NanReturnValue(NanNew<Number>(rb_num2dbl(val)));
+  long longVal = FIX2LONG(val);
+  if (longVal >= MIN_INT32 && longVal <= MAX_INT32) {
+    NanReturnValue(NanNew<Integer>(longVal));
+  }
+  else
+    NanReturnValue(NanNew<Number>(longVal));
+}
+
+NAN_METHOD(Ruby::RubyFloatToJS)
+{
+  NanScope();
+  
+  VALUE val = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
+  
+  NanReturnValue(NanNew<Number>(RFLOAT_VALUE(val)));
 }
 
 NODE_MODULE(norby, Ruby::Init)
