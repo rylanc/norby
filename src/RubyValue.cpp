@@ -232,6 +232,7 @@ NAN_METHOD(RubyValue::SetOwner)
   NanReturnUndefined();
 }
 
+// TODO: Can/should we move any of this (and Set) to JS?
 NAN_METHOD(RubyValue::GetOwner)
 {
   NanScope();
