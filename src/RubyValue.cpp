@@ -44,6 +44,8 @@ Local<Object> RubyValue::New(VALUE rbObj)
   Local<Object> v8Obj = NanNew<Function>(s_constructor)->NewInstance();
   self->Wrap(v8Obj);
   
+  v8Obj->Set(NanNew<String>("type"), NanNew<Integer>(TYPE(rbObj)));
+  
   return NanEscapeScope(v8Obj);
 }
 

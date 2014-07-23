@@ -32,6 +32,32 @@ void Ruby::Init(Handle<Object> exports)
   NODE_SET_METHOD(exports, "rubyBoolToJS", RubyBoolToJS);
   NODE_SET_METHOD(exports, "rubyFixnumToJS", RubyFixnumToJS);
   NODE_SET_METHOD(exports, "rubyFloatToJS", RubyFloatToJS);
+  
+  Local<Object> types = NanNew<Object>();
+  exports->Set(NanNew<String>("types"), types);
+  
+  types->Set(NanNew<String>("NONE"), NanNew<Integer>(T_NONE));
+  types->Set(NanNew<String>("NIL"), NanNew<Integer>(T_NIL));
+  types->Set(NanNew<String>("OBJECT"), NanNew<Integer>(T_OBJECT));
+  types->Set(NanNew<String>("CLASS"), NanNew<Integer>(T_CLASS));
+  types->Set(NanNew<String>("ICLASS"), NanNew<Integer>(T_ICLASS));
+  types->Set(NanNew<String>("MODULE"), NanNew<Integer>(T_MODULE));
+  types->Set(NanNew<String>("FLOAT"), NanNew<Integer>(T_FLOAT));
+  types->Set(NanNew<String>("STRING"), NanNew<Integer>(T_STRING));
+  types->Set(NanNew<String>("REGEXP"), NanNew<Integer>(T_REGEXP));
+  types->Set(NanNew<String>("ARRAY"), NanNew<Integer>(T_ARRAY));
+  types->Set(NanNew<String>("HASH"), NanNew<Integer>(T_HASH));
+  types->Set(NanNew<String>("STRUCT"), NanNew<Integer>(T_STRUCT));
+  types->Set(NanNew<String>("BIGNUM"), NanNew<Integer>(T_BIGNUM));
+  types->Set(NanNew<String>("FILE"), NanNew<Integer>(T_FILE));
+  types->Set(NanNew<String>("FIXNUM"), NanNew<Integer>(T_FIXNUM));
+  types->Set(NanNew<String>("TRUE"), NanNew<Integer>(T_TRUE));
+  types->Set(NanNew<String>("FALSE"), NanNew<Integer>(T_FALSE));
+  types->Set(NanNew<String>("DATA"), NanNew<Integer>(T_DATA));
+  types->Set(NanNew<String>("MATCH"), NanNew<Integer>(T_MATCH));
+  types->Set(NanNew<String>("SYMBOL"), NanNew<Integer>(T_SYMBOL));
+  types->Set(NanNew<String>("RATIONAL"), NanNew<Integer>(T_RATIONAL));
+  types->Set(NanNew<String>("COMPLEX"), NanNew<Integer>(T_COMPLEX));
 }
 
 void Ruby::Cleanup(void*)
