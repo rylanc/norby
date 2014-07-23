@@ -48,6 +48,7 @@ class RubyValue : public node::ObjectWrap
   
   static VALUE s_wrappedClass;
   static v8::Persistent<v8::Function> s_constructor;
+  static VALUE s_globalHash;
 };
 
 #endif // NORBY_RUBY_OBJECT_H_

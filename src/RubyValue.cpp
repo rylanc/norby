@@ -6,11 +6,16 @@ using namespace v8;
 ID RubyValue::V8_WRAPPER_ID;
 VALUE RubyValue::s_wrappedClass;
 VALUE RubyValue::BLOCK_WRAPPER_CLASS;
+VALUE RubyValue::s_globalHash;
 
 Persistent<Function> RubyValue::s_constructor;
 
 void RubyValue::Init()
 {
+  s_globalHash = rb_hash_new();
+  rb_funcall2(s_globalHash, rb_intern("compare_by_identity"), 0, NULL);
+  rb_gc_register_address(&s_globalHash);
+  
   s_wrappedClass = rb_define_class("WrappedRubyValue", rb_cObject);
   V8_WRAPPER_ID = rb_intern("@_wrappedObject");
   BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
@@ -42,15 +47,26 @@ Local<Object> RubyValue::New(VALUE rbObj)
   return NanEscapeScope(v8Obj);
 }
 
+inline
 RubyValue::RubyValue(VALUE obj) :
-  m_obj(obj)
+  m_obj(obj), m_owner(NULL)
 {
-  rb_gc_register_address(&m_obj);
+  if (!SPECIAL_CONST_P(m_obj)) {
+    long count = FIX2LONG(rb_hash_lookup2(s_globalHash, m_obj, LONG2FIX(0)));
+    rb_hash_aset(s_globalHash, m_obj, LONG2FIX(++count));
+  }
 }
 
 RubyValue::~RubyValue()
 {
-  rb_gc_unregister_address(&m_obj);
+  if (!SPECIAL_CONST_P(m_obj)) {
+    long count = FIX2LONG(rb_hash_lookup2(s_globalHash, m_obj, LONG2FIX(0)));
+    assert(count > 0);
+    if (count > 1)
+      rb_hash_aset(s_globalHash, m_obj, LONG2FIX(--count));
+    else
+      rb_hash_delete(s_globalHash, m_obj);
+  }
 }
 
 // TODO: Should this be a SafeMethodCaller inner class?
@@ -93,6 +109,7 @@ struct Block
 
 struct SafeMethodCaller
 {
+  inline
   SafeMethodCaller(_NAN_METHOD_ARGS_TYPE args) :
     rubyArgs(args.Length()-1), ex(Qnil), block(NULL)
   {
@@ -105,6 +122,7 @@ struct SafeMethodCaller
     FillArgs(args);
   }
   
+  inline
   void FillArgs(_NAN_METHOD_ARGS_TYPE args)
   {
     recv = *node::ObjectWrap::Unwrap<RubyValue>(args.This());
@@ -120,6 +138,7 @@ struct SafeMethodCaller
     }
   }
   
+  inline
   Handle<Value> Call()
   {
     // TODO: HandleScope?
@@ -130,10 +149,11 @@ struct SafeMethodCaller
       errObj->Set(NanNew<String>("error"), RubyValue::New(ex));
       return errObj;
     }
-    
+      
     return RubyValue::New(res);
   }
   
+  inline
   static VALUE SafeCB(VALUE data)
   {
     const SafeMethodCaller* self = reinterpret_cast<SafeMethodCaller*>(data);
