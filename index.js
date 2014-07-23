@@ -5,7 +5,7 @@ var ruby = require('./lib/ruby'),
 
 var getClass = module.exports.getClass = function(name) {
   var rubyClass = ruby.getConst(name);
-  if (!rubyClass.isA(ruby.Class))
+  if (rubyClass.getType() !== ruby.types.CLASS)
     throw new TypeError(name + ' is not a class');
 
   return modules.convertClass(rubyClass);
@@ -16,7 +16,7 @@ module.exports.newInstance = function() {
   return new (Cls.bind.apply(Cls, arguments))();
 };
 
-var Proc = modules.convertClass(ruby.Proc);
+var Proc = getClass('Proc');
 module.exports.inherits = function(ctor, superName) {
   var superClass = ruby.getConst(superName);
   modules.defineClass(ctor, superClass);

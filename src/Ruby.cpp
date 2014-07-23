@@ -29,13 +29,11 @@ void Ruby::Init(Handle<Object> exports)
   NODE_SET_METHOD(exports, "jsNumToRuby", JsNumToRuby);
   
   NODE_SET_METHOD(exports, "rubyStrToJS", RubyStrToJS);
-  NODE_SET_METHOD(exports, "rubyBoolToJS", RubyBoolToJS);
   NODE_SET_METHOD(exports, "rubyFixnumToJS", RubyFixnumToJS);
   NODE_SET_METHOD(exports, "rubyFloatToJS", RubyFloatToJS);
   
   Local<Object> types = NanNew<Object>();
   exports->Set(NanNew<String>("types"), types);
-  
   types->Set(NanNew<String>("NONE"), NanNew<Integer>(T_NONE));
   types->Set(NanNew<String>("NIL"), NanNew<Integer>(T_NIL));
   types->Set(NanNew<String>("OBJECT"), NanNew<Integer>(T_OBJECT));
@@ -107,20 +105,7 @@ NAN_METHOD(Ruby::RubyStrToJS)
   NanScope();
   
   VALUE rbStr = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
-
   NanReturnValue(NanNew<String>(RSTRING_PTR(rbStr), RSTRING_LEN(rbStr)));
-}
-
-NAN_METHOD(Ruby::RubyBoolToJS)
-{
-  NanScope();
-  
-  VALUE val = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
-
-  if (RTEST(val))
-    NanReturnValue(NanTrue());
-  else
-    NanReturnValue(NanFalse());
 }
 
 NAN_METHOD(Ruby::RubyFixnumToJS)
