@@ -19,7 +19,7 @@ module.exports.newInstance = function() {
 var Proc = getClass('Proc');
 module.exports.inherits = function(ctor, superName) {
   var superClass = ruby.getConst(superName);
-  modules.defineClass(ctor, superClass);
+  modules.newClass(ctor, superClass);
   
   ctor.defineMethod = function(name, fn) {
     if (typeof fn !== 'function')
