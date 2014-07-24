@@ -72,6 +72,14 @@ describe('passing arguments', function() {
       expect(a.get_type(val)).to.equal('String');
       expect(a.check_string(val)).to.be.true;
     });
+    
+    it('should properly convert Unicode strings', function() {
+      var a = new ArgsInspector();
+      var val = 'ҊҊҊҊҊҊҊҊ';
+      
+      expect(a.get_enc(val)).to.equal('UTF-8');
+      expect(a.check_unicode(val)).to.equal(val);
+    });
   });
   
   describe('array', function() {

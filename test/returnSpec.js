@@ -107,6 +107,21 @@ describe('return', function() {
       expect(result).to.be.a('string');
       expect(result).to.equal('hello');
     });
+    
+    it.skip('should properly convert Unicode strings', function() {
+      var t = new Returner();
+      var result = t.ret_unicode();
+      console.log(result.length);
+      expect(result).to.be.a('string');
+      expect(result).to.equal('ҊҊҊҊҊҊ');
+    });
+    
+    it('should properly convert ISO-8859-1 strings', function() {
+      var t = new Returner();
+      var result = t.ret_iso_8859_1();
+      expect(result).to.be.a('string');
+      expect(result).to.equal('÷÷÷÷÷÷÷÷');
+    });
   });
   
   describe('array', function() {

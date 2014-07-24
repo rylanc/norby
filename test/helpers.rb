@@ -1,3 +1,5 @@
+# encoding: UTF-8
+
 class Returner
   def ret_nothing
   end
@@ -36,6 +38,14 @@ class Returner
   end
   def ret_string
     return "hello"
+  end
+  def ret_unicode
+    str = "ҊҊҊҊҊҊ"
+    return str.encode(Encoding::UTF_16)
+  end
+  def ret_iso_8859_1
+    str = "÷÷÷÷÷÷÷÷"
+    return str.encode(Encoding::ISO_8859_1)
   end
   def ret_array
     return [4, 3, 9]
@@ -84,6 +94,13 @@ class ArgsInspector
   end
   def check_time (arg)
     return (arg.year == 2001 and arg.month == 2 and arg.mday == 3)
+  end
+  def get_enc (str)
+    return str.encoding.to_s
+  end
+  def check_unicode (str)
+    utf16 = str.encode(Encoding::UTF_16)
+    return utf16.encode(Encoding::UTF_8)
   end
 end
 

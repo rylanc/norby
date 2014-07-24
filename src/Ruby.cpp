@@ -1,5 +1,6 @@
 #include "Ruby.h"
 #include "RubyValue.h"
+#include <ruby/encoding.h>
 #include <limits>
 
 using namespace v8;
@@ -75,10 +76,9 @@ NAN_METHOD(Ruby::GetSymbol)
 NAN_METHOD(Ruby::JsStrToRuby)
 {
   NanScope();
-  
-  // TODO: We should handle encoding here
+
   Handle<String> str = args[0].As<String>();
-  VALUE rbStr = rb_str_new(NULL, str->Utf8Length());
+  VALUE rbStr = rb_enc_str_new(NULL, str->Utf8Length(), rb_utf8_encoding());
   str->WriteUtf8(RSTRING_PTR(rbStr));
 
   NanReturnValue(RubyValue::New(rbStr));
@@ -105,6 +105,12 @@ NAN_METHOD(Ruby::RubyStrToJS)
   NanScope();
   
   VALUE rbStr = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
+  int encIdx = rb_enc_get_index(rbStr);
+  if (encIdx != rb_usascii_encindex() && encIdx != rb_utf8_encindex() &&
+      encIdx != rb_ascii8bit_encindex()) {
+    rbStr = rb_str_export_to_enc(rbStr, rb_utf8_encoding());
+  }
+    
   NanReturnValue(NanNew<String>(RSTRING_PTR(rbStr), RSTRING_LEN(rbStr)));
 }
 
