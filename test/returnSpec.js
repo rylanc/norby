@@ -108,7 +108,7 @@ describe('return', function() {
       expect(result).to.equal('hello');
     });
     
-    it.skip('should properly convert Unicode strings', function() {
+    it('should properly convert Unicode strings', function() {
       var t = new Returner();
       var result = t.ret_unicode();
       console.log(result.length);
