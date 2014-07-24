@@ -3,7 +3,7 @@
     {
       "target_name": "norby",
       "sources": [
-        "src/Ruby.cpp",
+        "src/ruby.cpp",
         "src/RubyValue.cpp"
       ],
       "include_dirs": [
