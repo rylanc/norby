@@ -52,4 +52,10 @@ describe('Ruby modules', function() {
     
     expect(M1).to.equal(M2);
   });
+  
+  it('should\'t enter an endless loop when it has a constant of itself',
+  function(done) {
+    ruby.getConstant('SelfRefMod');
+    done();
+  });
 });

@@ -53,6 +53,12 @@ describe('.getClass', function() {
     
     expect(T1).to.equal(T2);
   });
+  
+  it('should\'t enter an endless loop when it has a constant of itself',
+  function(done) {
+    ruby.getClass('SelfRefClass');
+    done();
+  });
 });
 
 describe('.newInstance', function() {

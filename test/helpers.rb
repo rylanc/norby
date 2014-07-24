@@ -194,3 +194,11 @@ module MyMod
     end
   end
 end
+
+class SelfRefClass
+  SelfRefClass = SelfRefClass
+end
+
+module SelfRefMod
+  SelfRefMod = SelfRefMod
+end

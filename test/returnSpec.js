@@ -111,7 +111,6 @@ describe('return', function() {
     it('should properly convert Unicode strings', function() {
       var t = new Returner();
       var result = t.ret_unicode();
-      console.log(result.length);
       expect(result).to.be.a('string');
       expect(result).to.equal('ҊҊҊҊҊҊ');
     });
