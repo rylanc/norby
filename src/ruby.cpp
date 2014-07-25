@@ -14,7 +14,6 @@ NAN_METHOD(GetSymbol)
   NanScope();
   
   VALUE sym = ID2SYM(rb_intern(*String::Utf8Value(args[0])));
-
   NanReturnValue(RubyValue::New(sym));
 }
 
@@ -49,7 +48,7 @@ NAN_METHOD(RubyStrToJS)
 {
   NanScope();
 
-  VALUE rbStr = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
+  VALUE rbStr = RubyValue::Unwrap(args[0].As<Object>());
   int encIdx = rb_enc_get_index(rbStr);
   if (encIdx != rb_usascii_encindex() && encIdx != rb_utf8_encindex() &&
       encIdx != rb_ascii8bit_encindex()) {
@@ -64,9 +63,7 @@ NAN_METHOD(RubyFixnumToJS)
 {
   NanScope();
   
-  VALUE val = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
-  
-  long longVal = FIX2LONG(val);
+  long longVal = FIX2LONG(RubyValue::Unwrap(args[0].As<Object>()));
   if (longVal >= MIN_INT32 && longVal <= MAX_INT32) {
     NanReturnValue(NanNew<Integer>(longVal));
   }
@@ -78,9 +75,8 @@ NAN_METHOD(RubyFloatToJS)
 {
   NanScope();
   
-  VALUE val = *node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>());
-  
-  NanReturnValue(NanNew<Number>(RFLOAT_VALUE(val)));
+  VALUE rbFloat = RubyValue::Unwrap(args[0].As<Object>());
+  NanReturnValue(NanNew<Number>(RFLOAT_VALUE(rbFloat)));
 }
 
 void Cleanup(void*)
@@ -101,7 +97,7 @@ void Init(Handle<Object> exports)
   RubyValue::Init();
   
   exports->Set(NanNew<String>("Object"), RubyValue::New(rb_cObject));
-  exports->Set(NanNew<String>("RubyValue"), RubyValue::GetRubyValueCtor());
+  exports->Set(NanNew<String>("RubyValue"), RubyValue::GetCtor());
 
   NODE_SET_METHOD(exports, "getSymbol", GetSymbol);
   

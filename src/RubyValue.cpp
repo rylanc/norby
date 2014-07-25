@@ -3,11 +3,10 @@
 
 using namespace v8;
 
-ID RubyValue::V8_WRAPPER_ID;
 VALUE RubyValue::s_wrappedClass;
-VALUE RubyValue::BLOCK_WRAPPER_CLASS;
+ID RubyValue::s_wrapperID;
+VALUE RubyValue::s_blockWrapperClass;
 VALUE RubyValue::s_globalHash;
-
 Persistent<Function> RubyValue::s_constructor;
 
 void RubyValue::Init()
@@ -16,9 +15,9 @@ void RubyValue::Init()
   rb_funcall2(s_globalHash, rb_intern("compare_by_identity"), 0, NULL);
   rb_gc_register_address(&s_globalHash);
   
-  s_wrappedClass = rb_define_class("WrappedRubyValue", rb_cObject);
-  V8_WRAPPER_ID = rb_intern("@_wrappedObject");
-  BLOCK_WRAPPER_CLASS = rb_define_class("BlockWrapper", rb_cObject);
+  s_wrappedClass = rb_define_class("WrappedRubyValue", rb_cData);
+  s_wrapperID = rb_intern("@_wrappedObject");
+  s_blockWrapperClass = rb_define_class("BlockWrapper", rb_cData);
   
   Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>();
   tpl->SetClassName(NanNew<String>("RubyValue"));
@@ -77,7 +76,8 @@ struct Block
   Block(Handle<Function> f)
   {
     NanAssignPersistent(func, f);
-    dataObj = Data_Wrap_Struct(RubyValue::BLOCK_WRAPPER_CLASS, NULL, Free, this);
+    dataObj = Data_Wrap_Struct(RubyValue::s_blockWrapperClass,
+                               NULL, Free, this);
   }
     
   static VALUE Func(VALUE, VALUE data, int argc, const VALUE* rbArgv)
@@ -95,7 +95,7 @@ struct Block
     Handle<Value> res = NanMakeCallback(NanGetCurrentContext()->Global(), fn,
                                         argc, &v8Args[0]);
     assert(res->IsObject());                                    
-    return *node::ObjectWrap::Unwrap<RubyValue>(res.As<Object>());
+    return RubyValue::Unwrap(res.As<Object>());
   }
     
   static void Free(void* data)
@@ -127,16 +127,14 @@ struct SafeMethodCaller
   inline
   void FillArgs(_NAN_METHOD_ARGS_TYPE args)
   {
-    recv = *node::ObjectWrap::Unwrap<RubyValue>(args.This());
+    recv = RubyValue::Unwrap(args.This());
     
     assert(args[0]->IsObject());
-    methodID =
-      SYM2ID(*node::ObjectWrap::Unwrap<RubyValue>(args[0].As<Object>()));
+    methodID = SYM2ID(RubyValue::Unwrap(args[0].As<Object>()));
   
     for (size_t i = 0; i < rubyArgs.size(); i++) {
       assert(args[i+1]->IsObject());
-      rubyArgs[i] =
-        *node::ObjectWrap::Unwrap<RubyValue>(args[i+1].As<Object>());
+      rubyArgs[i] = RubyValue::Unwrap(args[i+1].As<Object>());
     }
   }
   
@@ -145,7 +143,8 @@ struct SafeMethodCaller
   {
     // TODO: HandleScope?
     VALUE res = rb_rescue2(RUBY_METHOD_FUNC(SafeCB), VALUE(this),
-                           RUBY_METHOD_FUNC(RescueCB), VALUE(&ex), rb_eException, NULL);
+                           RUBY_METHOD_FUNC(RescueCB), VALUE(&ex),
+                           rb_eException, NULL);
     if (ex != Qnil) {
       Local<Object> errObj = NanNew<Object>();
       errObj->Set(NanNew<String>("error"), RubyValue::New(ex));
@@ -207,11 +206,11 @@ NAN_METHOD(RubyValue::CallMethodWithBlock)
   NanReturnValue(caller.Call());
 }
 
-// TODO: Should this be a member?
-NAN_WEAK_CALLBACK(OwnerWeakCB)
+template<typename T, typename P>
+void RubyValue::OwnerWeakCB(const _NanWeakCallbackData<T, P>& data)
 {
   RubyValue* self = data.GetParameter();
-  rb_ivar_set(*self, RubyValue::V8_WRAPPER_ID, Qnil);
+  rb_ivar_set(self->m_obj, s_wrapperID, Qnil);
 }
 
 NAN_METHOD(RubyValue::SetOwner)
@@ -223,9 +222,10 @@ NAN_METHOD(RubyValue::SetOwner)
   
   if (rb_obj_frozen_p(self->m_obj) == Qfalse) {
     VALUE wrappedObj = Data_Wrap_Struct(s_wrappedClass, NULL, NULL, self);
-    rb_ivar_set(self->m_obj, V8_WRAPPER_ID, wrappedObj);
+    rb_ivar_set(self->m_obj, s_wrapperID, wrappedObj);
   
-    self->m_owner = &NanMakeWeakPersistent(args[0].As<Object>(), self, OwnerWeakCB)->persistent;
+    self->m_owner = &NanMakeWeakPersistent(args[0].As<Object>(), self,
+                                           OwnerWeakCB)->persistent;
     self->m_owner->MarkIndependent();
   }
   
@@ -238,7 +238,7 @@ NAN_METHOD(RubyValue::GetOwner)
   NanScope();
   
   RubyValue *self = node::ObjectWrap::Unwrap<RubyValue>(args.This());
-  VALUE wrappedObj = rb_attr_get(self->m_obj, V8_WRAPPER_ID);
+  VALUE wrappedObj = rb_attr_get(self->m_obj, s_wrapperID);
   if (wrappedObj == Qnil)
     NanReturnUndefined();
   else {
@@ -251,7 +251,5 @@ NAN_METHOD(RubyValue::GetOwner)
 NAN_METHOD(RubyValue::GetType)
 {
   NanScope();
-  
-  RubyValue* self = node::ObjectWrap::Unwrap<RubyValue>(args.This());
-  NanReturnValue(NanNew<Integer>(TYPE(*self)));
+  NanReturnValue(NanNew<Integer>(TYPE(RubyValue::Unwrap(args.This()))));
 }

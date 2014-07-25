@@ -15,22 +15,20 @@
 class RubyValue : public node::ObjectWrap
 {
  public:
-  static ID V8_WRAPPER_ID;
-  static VALUE BLOCK_WRAPPER_CLASS;
- 
-  static void Init();
-  
   static v8::Local<v8::Object> New(VALUE obj);
-  // TODO: Is this right?
-  operator VALUE()
+  static inline VALUE Unwrap(v8::Handle<v8::Object> handle)
   {
-    return m_obj;
+    return node::ObjectWrap::Unwrap<RubyValue>(handle)->m_obj;
   }
   
-  static v8::Local<v8::Function> GetRubyValueCtor()
+  static void Init();
+  
+  static v8::Local<v8::Function> GetCtor()
   {
     return NanNew<v8::Function>(s_constructor);
   }
+  
+  static VALUE s_blockWrapperClass;
 
  private:
   RubyValue(VALUE obj);
@@ -42,12 +40,14 @@ class RubyValue : public node::ObjectWrap
   static NAN_METHOD(GetOwner);
   static NAN_METHOD(GetType);
   
+  NAN_WEAK_CALLBACK(OwnerWeakCB);
 
   VALUE m_obj;
   // The pure JS object that holds the reference to this
   v8::Persistent<v8::Object>* m_owner;
   
   static VALUE s_wrappedClass;
+  static ID s_wrapperID;
   static v8::Persistent<v8::Function> s_constructor;
   static VALUE s_globalHash;
 };
