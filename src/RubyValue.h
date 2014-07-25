@@ -1,5 +1,5 @@
-#ifndef NORBY_RUBY_OBJECT_H_
-#define NORBY_RUBY_OBJECT_H_
+#ifndef NORBY_RUBY_VALUE_H_
+#define NORBY_RUBY_VALUE_H_
 
 #include <node.h>
 #include <nan.h>
@@ -20,8 +20,6 @@ class RubyValue : public node::ObjectWrap
   {
     return NanNew<v8::Function>(s_constructor);
   }
-  
-  static VALUE s_blockWrapperClass;
 
  private:
   RubyValue(VALUE obj);
@@ -45,4 +43,4 @@ class RubyValue : public node::ObjectWrap
   static VALUE s_globalHash;
 };
 
-#endif // NORBY_RUBY_OBJECT_H_
+#endif // NORBY_RUBY_VALUE_H_

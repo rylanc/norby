@@ -1,16 +1,14 @@
 #include "RubyValue.h"
-#include <vector>
-
-#include <iostream>
-using namespace std;
+#include "SafeMethodCaller.h"
 
 using namespace v8;
 
 VALUE RubyValue::s_wrappedClass;
 ID RubyValue::s_wrapperID;
-VALUE RubyValue::s_blockWrapperClass;
 VALUE RubyValue::s_globalHash;
 Persistent<Function> RubyValue::s_constructor;
+
+VALUE Block::s_wrapperClass;
 
 void RubyValue::Init()
 {
@@ -20,7 +18,7 @@ void RubyValue::Init()
   
   s_wrappedClass = rb_define_class("WrappedRubyValue", rb_cData);
   s_wrapperID = rb_intern("@_wrappedObject");
-  s_blockWrapperClass = rb_define_class("BlockWrapper", rb_cData);
+  Block::s_wrapperClass = rb_define_class("BlockWrapper", rb_cData);
   
   Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>();
   tpl->SetClassName(NanNew<String>("RubyValue"));
@@ -67,128 +65,6 @@ RubyValue::~RubyValue()
       rb_hash_delete(s_globalHash, m_obj);
   }
 }
-
-// TODO: Should this be a SafeMethodCaller inner class?
-struct Block
-{
-  Block(Handle<Function> f)
-  {
-    NanAssignPersistent(func, f);
-    dataObj = Data_Wrap_Struct(RubyValue::s_blockWrapperClass,
-                               NULL, Free, this);
-  }
-    
-  static VALUE Func(VALUE, VALUE data, int argc, const VALUE* rbArgv)
-  {
-    Block* block;
-    Data_Get_Struct(data, Block, block);
-  
-    Local<Function> fn = NanNew<Function>(block->func);
-    // TODO: Should we store args.This() and call it as the receiver?
-    std::vector<Handle<Value> > v8Args(argc);
-    for (int i = 0; i < argc; i++) {
-      v8Args[i] = RubyValue::New(rbArgv[i]);
-    }
-    
-    Handle<Value> res = NanMakeCallback(NanGetCurrentContext()->Global(), fn,
-                                        argc, &v8Args[0]);
-    // If the callback threw an exception and a process.on('uncaughtException)
-    // handler has been registered (or a domain.on('error') handler), 
-    // node::MakeCallback will return undefined.
-    if (res->IsUndefined())
-      return Qnil;
-      
-    assert(res->IsObject());
-    return RubyValue::Unwrap(res.As<Object>());
-  }
-    
-  static void Free(void* data)
-  {
-    Block* block = static_cast<Block*>(data);
-    NanDisposePersistent(block->func);
-    delete block;
-  }
-    
-  Persistent<Function> func;
-  VALUE dataObj;
-};
-
-struct SafeMethodCaller
-{
-  inline
-  SafeMethodCaller(_NAN_METHOD_ARGS_TYPE args) :
-    rubyArgs(args.Length()-1), ex(Qnil), block(NULL)
-  {
-    FillArgs(args);
-  }
-  
-  SafeMethodCaller(_NAN_METHOD_ARGS_TYPE args, Local<Function> blockFunc) :
-    rubyArgs(args.Length()-2), ex(Qnil), block(new Block(blockFunc))
-  {
-    FillArgs(args);
-  }
-  
-  inline
-  void FillArgs(_NAN_METHOD_ARGS_TYPE args)
-  {
-    recv = RubyValue::Unwrap(args.This());
-    
-    assert(args[0]->IsObject());
-    methodID = SYM2ID(RubyValue::Unwrap(args[0].As<Object>()));
-  
-    for (size_t i = 0; i < rubyArgs.size(); i++) {
-      assert(args[i+1]->IsObject());
-      rubyArgs[i] = RubyValue::Unwrap(args[i+1].As<Object>());
-    }
-  }
-  
-  inline
-  Handle<Value> Call()
-  {
-    // TODO: HandleScope?
-    VALUE res = rb_rescue2(RUBY_METHOD_FUNC(SafeCB), VALUE(this),
-                           RUBY_METHOD_FUNC(RescueCB), VALUE(&ex),
-                           rb_eException, NULL);
-    if (ex != Qnil) {
-      Local<Object> errObj = NanNew<Object>();
-      errObj->Set(NanNew<String>("error"), RubyValue::New(ex));
-      return errObj;
-    }
-      
-    return RubyValue::New(res);
-  }
-  
-  inline
-  static VALUE SafeCB(VALUE data)
-  {
-    const SafeMethodCaller* self = reinterpret_cast<SafeMethodCaller*>(data);
-    
-    if (self->block == NULL) {
-      return rb_funcall2(self->recv, self->methodID, self->rubyArgs.size(),
-                         (VALUE*)&self->rubyArgs[0]);
-    }
-    else {
-      // TODO: Probably not available in Ruby < 1.9
-      return rb_block_call(self->recv, self->methodID, self->rubyArgs.size(),
-                           (VALUE*)&self->rubyArgs[0],
-                           RUBY_METHOD_FUNC(Block::Func), self->block->dataObj);
-    }
-  }
-  
-  static VALUE RescueCB(VALUE data, VALUE ex)
-  {
-    VALUE *storedEx = reinterpret_cast<VALUE*>(data);
-    *storedEx = ex;
-
-    return Qnil;
-  }
-
-  VALUE recv;
-  VALUE methodID;
-  std::vector<VALUE> rubyArgs;
-  VALUE ex;
-  Block* block;
-};
 
 NAN_METHOD(RubyValue::CallMethod)
 {

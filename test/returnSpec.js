@@ -62,8 +62,7 @@ describe('return', function() {
       expect(result).to.equal(-9007199254740992);
     });
   });
-  
-  // TODO: Should we test negative numbers too?
+
   describe('bignum', function() {
     // Even though we lose precision due to conversion to floating point,
     // Bignums should still convert

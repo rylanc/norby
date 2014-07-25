@@ -100,8 +100,7 @@ void Init(Handle<Object> exports)
   exports->Set(NanNew<String>("RubyValue"), RubyValue::GetCtor());
 
   NODE_SET_METHOD(exports, "getSymbol", GetSymbol);
-  
-  // TODO: Should these be RubyValue members?
+
   NODE_SET_METHOD(exports, "jsStrToRuby", JsStrToRuby);
   NODE_SET_METHOD(exports, "jsNumToRuby", JsNumToRuby);
   
