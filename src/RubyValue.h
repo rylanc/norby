@@ -5,13 +5,6 @@
 #include <nan.h>
 #include <ruby.h>
 
-#ifdef _DEBUG
-#include <iostream>
-#define LOG(x) std::cout << x << std::endl
-#else
-#define LOG(x)
-#endif
-
 class RubyValue : public node::ObjectWrap
 {
  public:
