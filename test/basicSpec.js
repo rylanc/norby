@@ -163,11 +163,15 @@ describe('.getConstant', function() {
     var MY_CONST = ruby.getConstant('MyMod::MY_CONST');
     expect(MY_CONST).to.equal('abcde');
   });
-  
-  // TODO: Should this work with further nested constants? (MyMod::ModClass::INNER_CONST)
+
   it('should return class constants', function() {
     var MY_CONST = ruby.getConstant('ClassTester::MY_CONST');
     expect(MY_CONST).to.deep.equal([1, 2]);
+  });
+  
+  it('should work recursively', function() {
+    var NESTED_CONST = ruby.getConstant('MyMod::ModClass::NESTED_CONST');
+    expect(NESTED_CONST).to.equal('12345');
   });
   
   it('should throw a ReferenceError given an invalid name', function() {
@@ -175,5 +179,3 @@ describe('.getConstant', function() {
     expect(fn).to.throw(ReferenceError);
   });
 });
-
-// TODO: Test exceptions (proper conversion, rubyStack)

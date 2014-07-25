@@ -196,6 +196,7 @@ module MyMod
     return [ 1, 2, 3, 4]
   end
   class ModClass
+    NESTED_CONST = "12345"
     def call_me
       return 3.14159
     end
@@ -212,4 +213,24 @@ end
 
 def get_binding(str)
   return binding
+end
+
+class ErrorRaiser
+  class TestError < StandardError
+  end
+  
+  def wrong_args
+  end
+  def name_error
+    raise NameError.new("hi")
+  end
+  def no_method_error
+    raise NoMethodError.new("undefined method", "nothing")
+  end
+  def type_error
+    [1, 2, 3].first("two")
+  end
+  def test_error
+    raise TestError.new("hello")
+  end
 end
