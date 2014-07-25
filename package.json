@@ -1,6 +1,6 @@
 {
   "name": "norbyjs",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Call your Ruby libraries from node.js",
   "keywords": [
     "norby",
@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "chai": "~1.9.1",
-    "mocha": "~1.21.1"
+    "mocha": "~1.21.0"
   },
   "scripts": {
     "test": "./node_modules/.bin/mocha -R spec"
