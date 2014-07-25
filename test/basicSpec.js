@@ -9,6 +9,8 @@ describe('.require', function() {
   
   it('shouldn\'t throw on valid file', function() {
     ruby.require('./test/helpers');
+    var result = ruby.require('./test/helpers');
+    expect(result).to.be.false;
   });
   
   it('should throw on invalid file', function() {
@@ -19,6 +21,11 @@ describe('.require', function() {
   it('should throw a SyntaxError given invalid syntax', function() {
     var fn = function() { ruby.require('./test/invalid'); };
     expect(fn).to.throw(SyntaxError);
+  });
+  
+  it('should throw given the wrong argument type', function() {
+    var fn = function() { ruby.require(5); };
+    expect(fn).to.throw(TypeError);
   });
 });
 
@@ -98,6 +105,20 @@ describe('.eval', function() {
     var fn = function() { ruby.eval('end'); };
     expect(fn).to.throw(SyntaxError);
   });
+  
+  it('should properly forward all arguments', function() {
+    var get_binding = ruby.getMethod('get_binding');
+    var result = ruby.eval('str + " Stan!"', get_binding("Hello"));
+    expect(result).to.equal('Hello Stan!');
+    
+    var fn = function() { ruby.eval('end', get_binding('bla'), 'basicSpec.js', 112); };
+    expect(fn).to.throw(SyntaxError, /basicSpec.js:112/);
+  });
+  
+  it('should throw given the wrong argument type', function() {
+    var fn = function() { ruby.eval(5); };
+    expect(fn).to.throw(TypeError);
+  });
 });
 
 describe('.getMethod', function() {
@@ -115,6 +136,8 @@ describe('.getMethod', function() {
     var fn = function() { doesntExist(); };
     expect(fn).to.throw(ReferenceError);
   });
+  
+  // TODO: Test arguments and blocks
 });
 
 describe('.getConstant', function() {
@@ -144,3 +167,5 @@ describe('.getConstant', function() {
     expect(fn).to.throw(ReferenceError);
   });
 });
+
+// TODO: Test exceptions (proper conversion, rubyStack)

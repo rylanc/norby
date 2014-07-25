@@ -36,17 +36,7 @@ module.exports.inherits = function(ctor, superName) {
   };
 };
 
-module.exports.require = function(name) {
-  ruby.Object.callMethod(symbols.require, ruby.jsStrToRuby(name));
-};
-
-// TODO: Other arguments. Also, we should add unit tests for those
-module.exports.eval = function(code) {
-  return convert.rubyToJS(ruby.Object.callMethod(symbols.eval,
-    ruby.jsStrToRuby(code)));
-};
-
-module.exports.getMethod = function(name) {
+var getMethod = module.exports.getMethod = function(name) {
   var methodSym = symbols.getSym(name);
   return function() {
     var rbArgs = convert.argsToRuby.apply(methodSym, arguments);
@@ -57,3 +47,6 @@ module.exports.getMethod = function(name) {
 module.exports.getConstant = function(name) {
   return convert.rubyToJS(ruby.getConst(name));
 };
+
+module.exports.require = getMethod('require');
+module.exports.eval = getMethod('eval');

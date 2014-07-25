@@ -202,3 +202,7 @@ end
 module SelfRefMod
   SelfRefMod = SelfRefMod
 end
+
+def get_binding(str)
+  return binding
+end
