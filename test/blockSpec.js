@@ -69,18 +69,15 @@ describe('passing blocks', function() {
   });
   
   describe('throwing exceptions', function() {
-    it('should work with uncaught exception handlers', function(done) {
-      var d = require('domain').create();
-      d.on('error', function() {});
-      d.run(function() {
-        var tester = new BlockTester();
-        var result = tester.yield_one(function(arg) {
-          throw new Error();
+    it('should propagate up the call stack', function() {
+      var tester = new BlockTester();
+      var fn = function() {
+        tester.yield_two(function() {
+          throw new Error('hi there');
         });
-        expect(result).to.be.undefined;
-        done();
-      });
-      d.dispose();
+      };
+      
+      expect(fn).to.throw(Error, 'hi there');
     });
   });
 });

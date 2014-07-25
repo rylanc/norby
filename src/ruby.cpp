@@ -91,6 +91,7 @@ void Init(Handle<Object> exports)
   RUBY_INIT_STACK;
   ruby_init();
   ruby_options(3, argv);
+  // TODO: Should we try to prohibit threads? We could redefine Thread::new...
 
   node::AtExit(Cleanup);
 

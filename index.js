@@ -27,7 +27,7 @@ module.exports.inherits = function(ctor, superName) {
 
     var proc = new Proc(function() {
       var self = ruby.getSelf();
-      return fn.apply(self, arguments);
+      return self[name].apply(self, arguments);
     });
 
     ctor._rubyMod.callMethod(symbols.define_method, symbols.getSym(name),

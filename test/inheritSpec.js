@@ -98,7 +98,7 @@ describe('.inherits', function() {
         expect(fn).to.throw(TypeError);
       });
       
-      it.skip('should throw when a property is later changed to a non-function', function() {
+      it('should throw when a property is later changed to a non-function', function() {
         var d = new Derived();
         d.call_derived = 5;
         var fn = function() { return d.make_call(); };

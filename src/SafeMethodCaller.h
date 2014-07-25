@@ -24,12 +24,16 @@ struct Block
       v8Args[i] = RubyValue::New(rbArgv[i]);
     }
     
+    // Since we can (for the most part) assume that there will always be an
+    // existing v8 stack at this point, we don't have to call
+    // node::MakeCallback. This allows us to propagate any exceptions up the v8
+    // call stack, instead of just exiting the process. This will cause issues
+    // if we're somehow called directly from native code (e.g. directly from
+    // the libuv event loop)
     v8::Handle<v8::Value> res =
-      NanMakeCallback(NanGetCurrentContext()->Global(), fn, argc, &v8Args[0]);
-    // If the callback threw an exception and a process.on('uncaughtException)
-    // handler has been registered (or a domain.on('error') handler), 
-    // node::MakeCallback will return undefined.
-    if (res->IsUndefined())
+      fn->Call(NanGetCurrentContext()->Global(), argc, &v8Args[0]);
+      
+    if (res.IsEmpty())
       return Qnil;
       
     assert(res->IsObject());
