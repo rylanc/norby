@@ -137,7 +137,15 @@ describe('.getMethod', function() {
     expect(fn).to.throw(ReferenceError);
   });
   
-  // TODO: Test arguments and blocks
+  it('should properly forward blocks', function(done) {
+    var non_class_yielder = ruby.getMethod('non_class_yielder');
+    expect(non_class_yielder).to.be.a('function');
+    
+    non_class_yielder('Stan', function(str) {
+      expect(str).to.equal('Hello, Stan');
+      done();
+    });
+  });
 });
 
 describe('.getConstant', function() {

@@ -1,6 +1,9 @@
 #include "RubyValue.h"
 #include <vector>
 
+#include <iostream>
+using namespace std;
+
 using namespace v8;
 
 VALUE RubyValue::s_wrappedClass;
@@ -89,7 +92,13 @@ struct Block
     
     Handle<Value> res = NanMakeCallback(NanGetCurrentContext()->Global(), fn,
                                         argc, &v8Args[0]);
-    assert(res->IsObject());                                    
+    // If the callback threw an exception and a process.on('uncaughtException)
+    // handler has been registered (or a domain.on('error') handler), 
+    // node::MakeCallback will return undefined.
+    if (res->IsUndefined())
+      return Qnil;
+      
+    assert(res->IsObject());
     return RubyValue::Unwrap(res.As<Object>());
   }
     

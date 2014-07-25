@@ -186,6 +186,10 @@ def non_class_function (arg1, arg2, arg3)
   return arg1 + arg2 + arg3
 end
 
+def non_class_yielder (name)
+  yield "Hello, " + name
+end
+
 module MyMod
   MY_CONST = "abcde"
   def MyMod.mod_func

@@ -67,4 +67,20 @@ describe('passing blocks', function() {
       expect(result).to.equal(12345);
     });
   });
+  
+  describe('throwing exceptions', function() {
+    it('should work with uncaught exception handlers', function(done) {
+      var d = require('domain').create();
+      d.on('error', function() {});
+      d.run(function() {
+        var tester = new BlockTester();
+        var result = tester.yield_one(function(arg) {
+          throw new Error();
+        });
+        expect(result).to.be.undefined;
+        done();
+      });
+      d.dispose();
+    });
+  });
 });
