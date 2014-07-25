@@ -53,7 +53,6 @@ are implemented. Feel free to add an issue for any bugs or missing features.
  - Support for Ruby including/extending
  - Support for Ruby hashes
  - Conversion of JS objects (that aren't wrapped Ruby objects)
- - Support for Ruby structs
  - Support for Ruby global variables
 
 ## API
@@ -73,8 +72,8 @@ are implemented. Feel free to add an issue for any bugs or missing features.
 
 ### ruby#getClass(name:String)
 
-  Returns a wrapped Ruby class specified by `name`. The `new` class method will
-  be called when the constructor is called.
+  Returns a wrapped Ruby class (or struct) specified by `name`. The `new` class
+  method will be called when the constructor is called.
   
 ```js
 var Time = ruby.getClass('Time');
@@ -144,7 +143,9 @@ d.make_call(); // => 'In JS: Hello'
 
 ### ruby#getMethod(name:String)
 
-  Returns a JS function that wraps the Ruby method specified by `name`. This currently only works with [Kernel](http://www.ruby-doc.org/core/Kernel.html) methods.
+  Returns a JS function that wraps the Ruby method specified by `name`. This
+  currently only works with [Kernel](http://www.ruby-doc.org/core/Kernel.html)
+  methods.
 
 ```ruby
 # hello.rb
@@ -161,7 +162,10 @@ my_func('Stan');
 
 ### ruby#getConstant(name:String)
   
-  Returns the Ruby constant specified by `name`. To get a constant within a module or class, separate the module and constant with ::. Without the separator, it returns an [Object](http://www.ruby-doc.org/core/Object.html) constant. `getConstant` can also be used to return modules.
+  Returns the Ruby constant specified by `name`. To get a constant within a
+  module or class, separate the module and constant with ::. Without the
+  separator, it returns an [Object](http://www.ruby-doc.org/core/Object.html)
+  constant. `getConstant` can also be used to return modules.
 
 ```ruby
 # const.rb
@@ -222,8 +226,8 @@ pat.match('cat', function() {
 
 ## Ruby Modules
 
-To retrieve Ruby modules, call `ruby#getConstant`. Modules are returned as JS objects
-with their class methods and constants as properties.
+To retrieve Ruby modules, call `ruby#getConstant`. Modules are returned as JS
+objects with their class methods and constants as properties.
 
 ```ruby
 # mod.rb
@@ -296,7 +300,8 @@ lose precision above 2<sup>53</sup>.
 
 #### `Bignum`s
 
-Are converted to JS numbers if they are less than or equal to `Number.MAX_VALUE`. Otherwise, they are converted into JS strings. See the above note about precision.
+Are converted to JS numbers if they are less than or equal to `Number.MAX_VALUE`.
+Otherwise, they are converted into JS strings. See the above note about precision.
 
 #### arrays
 

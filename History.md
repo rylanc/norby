@@ -1,3 +1,14 @@
+0.2.0 / 2014-07-18
+==================
+
+ * Moved much of the implementation out of native into JS
+ * Objects created from an inherited Ruby class now properly work with
+   `instanceof`
+ * Added support for non-UTF8 Ruby string encodings
+ * Added support for Ruby structs
+ * Fixed the handling of JS exceptions thrown from wrapped Ruby blocks
+ * Several performance enhancements
+
 0.1.3 / 2014-07-18
 ==================
  
