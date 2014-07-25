@@ -52,7 +52,7 @@ describe('Ruby exceptions', function() {
   describe('TypeError', function() {
     it('should convert to JS TypeError', function() {
       var fn = function() { raiser.type_error() };
-      expect(fn).to.throw(TypeError, /conversion/);
+      expect(fn).to.throw(TypeError, /String/);
     });
   });
   
