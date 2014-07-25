@@ -50,6 +50,9 @@ class Returner
   def ret_array
     return [4, 3, 9]
   end
+  def ret_symbol
+    return :Returner
+  end
   def ret_time
     return Time.new(2001, 2, 3)
   end

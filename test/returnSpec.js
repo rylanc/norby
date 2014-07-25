@@ -123,6 +123,15 @@ describe('return', function() {
     });
   });
   
+  describe('symbol', function() {
+    it('should convert to a string', function() {
+      var t = new Returner();
+      var result = t.ret_symbol();
+      expect(result).to.be.a('string');
+      expect(result).to.equal('Returner');
+    });
+  });
+  
   describe('array', function() {
     it('should return [4, 3, 9]', function() {
       var t = new Returner();
