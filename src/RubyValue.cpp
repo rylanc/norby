@@ -23,16 +23,11 @@ void RubyValue::Init()
   tpl->SetClassName(NanNew<String>("RubyValue"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   
-  tpl->PrototypeTemplate()->Set(NanNew<String>("callMethod"),
-    NanNew<FunctionTemplate>(CallMethod)->GetFunction());
-  tpl->PrototypeTemplate()->Set(NanNew<String>("callMethodWithBlock"),
-    NanNew<FunctionTemplate>(CallMethodWithBlock)->GetFunction());
-  tpl->PrototypeTemplate()->Set(NanNew<String>("setOwner"),
-    NanNew<FunctionTemplate>(SetOwner)->GetFunction());
-  tpl->PrototypeTemplate()->Set(NanNew<String>("getOwner"),
-    NanNew<FunctionTemplate>(GetOwner)->GetFunction());
-  tpl->PrototypeTemplate()->Set(NanNew<String>("getType"),
-    NanNew<FunctionTemplate>(GetType)->GetFunction());
+  NODE_SET_PROTOTYPE_METHOD(tpl, "callMethod", CallMethod);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "callMethodWithBlock", CallMethodWithBlock);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "setOwner", SetOwner);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getOwner", GetOwner);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getType", GetType);
     
   NanAssignPersistent(s_constructor, tpl->GetFunction());
 }
