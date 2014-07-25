@@ -234,3 +234,9 @@ class ErrorRaiser
     raise TestError.new("hello")
   end
 end
+
+MyStruct = Struct.new(:name) do
+  def say_hi
+    return "Hello, #{name}!"
+  end
+end

@@ -64,4 +64,18 @@ describe('Ruby classes', function() {
     var result = Time.inspect(2);
     expect(result).to.equal('Time');
   });
+  
+  it('should treat Ruby structs as regular classes', function() {
+    var MyStruct = ruby.getClass('MyStruct');
+    expect(MyStruct).to.be.a('function');
+    
+    var ms = new MyStruct('Stan');
+    expect(ms).to.respondTo('say_hi');
+    var result = ms.say_hi();
+    expect(result).to.equal('Hello, Stan!');
+    
+    expect(ms).to.respondTo('name');
+    result = ms.name();
+    expect(result).to.equal('Stan');
+  });
 });
