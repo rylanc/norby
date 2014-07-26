@@ -1,5 +1,5 @@
 {
-  "name": "norbyjs",
+  "name": "norby",
   "version": "0.2.1",
   "description": "Call your Ruby libraries from node.js",
   "keywords": [
