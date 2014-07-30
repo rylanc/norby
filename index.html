@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=640">
+
+    <link rel="stylesheet" href="stylesheets/core.css" media="screen">
+    <link rel="stylesheet" href="stylesheets/mobile.css" media="handheld, only screen and (max-device-width:640px)">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+
+    <script type="text/javascript" src="javascripts/modernizr.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="javascripts/headsmart.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        $('#main_content').headsmart()
+      })
+    </script>
+    <title>Norby by rylanc</title>
+  </head>
+
+  <body>
+    <a id="forkme_banner" href="https://github.com/rylanc/norby">View on GitHub</a>
+    <div class="shell">
+
+      <header>
+        <span class="ribbon-outer">
+          <span class="ribbon-inner">
+            <h1>Norby</h1>
+            <h2>Call your Ruby libraries from node.js</h2>
+          </span>
+          <span class="left-tail"></span>
+          <span class="right-tail"></span>
+        </span>
+      </header>
+
+      <section id="downloads">
+        <span class="inner">
+          <a href="https://github.com/rylanc/norby/zipball/master" class="zip"><em>download</em> .ZIP</a><a href="https://github.com/rylanc/norby/tarball/master" class="tgz"><em>download</em> .TGZ</a>
+        </span>
+      </section>
+
+
+      <span class="banner-fix"></span>
+
+
+      <section id="main_content">
+        <h1>
+<a name="norby" class="anchor" href="#norby"><span class="octicon octicon-link"></span></a>norby</h1>
+
+<p><a href="http://badge.fury.io/js/norby"><img src="https://badge.fury.io/js/norby.svg" alt="NPM version"></a>
+<a href="https://travis-ci.org/rylanc/norby"><img src="https://travis-ci.org/rylanc/norby.svg?branch=master" alt="Build Status"></a></p>
+
+<p>Call your Ruby libraries from node.js</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">ruby</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'norby'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">Time</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getClass</span><span class="p">(</span><span class="s1">'Time'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Time</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'Year: '</span> <span class="o">+</span> <span class="nx">t</span><span class="p">.</span><span class="nx">year</span><span class="p">());</span> <span class="c1">// =&gt; 'Year: 2014'</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">t</span><span class="p">);</span> <span class="c1">// =&gt; '2014-07-02 00:00:00 -0400'</span>
+</pre></div>
+
+<h2>
+<a name="to-install" class="anchor" href="#to-install"><span class="octicon octicon-link"></span></a>To install</h2>
+
+<p>Prerequisites:</p>
+
+<pre><code>* node.js &gt;= 0.10
+* ruby &gt;= 1.9
+</code></pre>
+
+<p>Install using npm:</p>
+
+<div class="highlight highlight-sh"><pre>npm install norby
+</pre></div>
+
+<p>Compile from repository:</p>
+
+<div class="highlight highlight-sh"><pre>git clone https://github.com/rylanc/norby.git
+<span class="nb">cd </span>norby
+npm install
+</pre></div>
+
+<p>Run unit tests:</p>
+
+<div class="highlight highlight-sh"><pre>npm <span class="nb">test</span>
+</pre></div>
+
+<h2>
+<a name="whats-missing" class="anchor" href="#whats-missing"><span class="octicon octicon-link"></span></a>What's missing</h2>
+
+<p>norby is currently in an early beta state. Check back for updates as features
+are implemented. Feel free to add an issue for any bugs or missing features.</p>
+
+<ul>
+<li>Windows support. node.js is built with Visual Studio while most Windows Ruby
+installers use <a href="http://www.mingw.org">MinGW</a>. It may work if you build Ruby
+with VS, but I haven't tried it yet.</li>
+<li>Support for Ruby version 1.8.X</li>
+<li>Support for Ruby including/extending</li>
+<li>Support for Ruby hashes</li>
+<li>Conversion of JS objects (that aren't wrapped Ruby objects)</li>
+<li>Support for Ruby global variables</li>
+</ul><h2>
+<a name="api" class="anchor" href="#api"><span class="octicon octicon-link"></span></a>API</h2>
+
+<h3>
+<a name="ruby" class="anchor" href="#ruby"><span class="octicon octicon-link"></span></a>ruby</h3>
+
+<p>Exposed by <code>require('norby')</code>.</p>
+
+<h3>
+<a name="rubyrequirenamestring" class="anchor" href="#rubyrequirenamestring"><span class="octicon octicon-link"></span></a>ruby#require(name:String)</h3>
+
+<p>Calls Ruby's <a href="http://www.ruby-doc.org/core/Kernel.html#method-i-require">require</a>
+  method with the specified <code>name</code>.</p>
+
+<h3>
+<a name="rubyevalcodestring--bindingbinding--filenamestring--linenonumber" class="anchor" href="#rubyevalcodestring--bindingbinding--filenamestring--linenonumber"><span class="octicon octicon-link"></span></a>ruby#eval(code:String [, binding:Binding [, filename:String [, lineno:Number]]])</h3>
+
+<p>Calls Ruby's <a href="http://www.ruby-doc.org/core/Kernel.html#method-i-eval">eval</a> method
+  with the specified parameters.</p>
+
+<h3>
+<a name="rubygetclassnamestring" class="anchor" href="#rubygetclassnamestring"><span class="octicon octicon-link"></span></a>ruby#getClass(name:String)</h3>
+
+<p>Returns a wrapped Ruby class (or struct) specified by <code>name</code>. The <code>new</code> class
+  method will be called when the constructor is called.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">Time</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getClass</span><span class="p">(</span><span class="s1">'Time'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Time</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+</pre></div>
+
+<p>To get a class within a module, separate the module and class with <code>::</code>.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">ZlibInflate</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getClass</span><span class="p">(</span><span class="s1">'Zlib::Inflate'</span><span class="p">);</span>
+</pre></div>
+
+<p>Class methods and constants are exposed as properties of the constructor.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">Time</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getClass</span><span class="p">(</span><span class="s1">'Time'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">Time</span><span class="p">.</span><span class="nx">utc</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">File</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getClass</span><span class="p">(</span><span class="s1">'File'</span><span class="p">);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">File</span><span class="p">.</span><span class="nx">SEPARATOR</span><span class="p">);</span> <span class="c1">// =&gt; '/'</span>
+</pre></div>
+
+<h3>
+<a name="rubynewinstanceclassnamestring--" class="anchor" href="#rubynewinstanceclassnamestring--"><span class="octicon octicon-link"></span></a>ruby#newInstance(className:String [, …])</h3>
+
+<p>Returns a new instance of a Ruby object specified by <code>className</code>. Any
+  additional arguments will be passed on to the class's   <code>new</code> method.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">newInstance</span><span class="p">(</span><span class="s1">'Time'</span><span class="p">,</span> <span class="mi">2014</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="rubyinheritsderivedconstructor-supernamestring" class="anchor" href="#rubyinheritsderivedconstructor-supernamestring"><span class="octicon octicon-link"></span></a>ruby#inherits(derived:Constructor, superName:String)</h3>
+
+<p>Creates a new Ruby class (named <code>derived.name</code>) who's superclass is specified
+  by <code>superName</code>. All public instance methods of <code>superName</code> will be added to
+  the derived class's prototype. To add methods to the derived class, call its
+  <code>defineMethod</code> function. This will add the method to the class's prototype and
+  override the Ruby superclass's method. Adding the method to the prototype only
+  will fail to override the superclass's method.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># base.rb</span>
+<span class="k">class</span> <span class="nc">Base</span>
+  <span class="k">def</span> <span class="nf">call_me</span>
+  <span class="k">end</span>
+  <span class="k">def</span> <span class="nf">make_call</span>
+    <span class="n">call_me</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-js"><pre><span class="nx">ruby</span><span class="p">.</span><span class="nx">require</span><span class="p">(</span><span class="s1">'./base'</span><span class="p">);</span>
+
+<span class="kd">function</span> <span class="nx">Derived</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">Derived</span><span class="p">.</span><span class="nx">super_</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">val</span> <span class="o">=</span> <span class="s1">'Hello'</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="nx">ruby</span><span class="p">.</span><span class="nx">inherits</span><span class="p">(</span><span class="nx">Derived</span><span class="p">,</span> <span class="s1">'Base'</span><span class="p">);</span>
+
+<span class="nx">Derived</span><span class="p">.</span><span class="nx">defineMethod</span><span class="p">(</span><span class="s1">'call_me'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'In JS: '</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">val</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">d</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Derived</span><span class="p">();</span>
+<span class="nx">d</span><span class="p">.</span><span class="nx">make_call</span><span class="p">();</span> <span class="c1">// =&gt; 'In JS: Hello'</span>
+</pre></div>
+
+<h3>
+<a name="rubygetmethodnamestring" class="anchor" href="#rubygetmethodnamestring"><span class="octicon octicon-link"></span></a>ruby#getMethod(name:String)</h3>
+
+<p>Returns a JS function that wraps the Ruby method specified by <code>name</code>. This
+  currently only works with <a href="http://www.ruby-doc.org/core/Kernel.html">Kernel</a>
+  methods.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># hello.rb</span>
+<span class="k">def</span> <span class="nf">my_func</span> <span class="p">(</span><span class="nb">name</span><span class="p">)</span>
+  <span class="nb">puts</span> <span class="s2">"Hello, </span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">!"</span>
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-js"><pre><span class="nx">ruby</span><span class="p">.</span><span class="nx">require</span><span class="p">(</span><span class="s1">'./hello'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">my_func</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getMethod</span><span class="p">(</span><span class="s1">'my_func'</span><span class="p">);</span>
+<span class="nx">my_func</span><span class="p">(</span><span class="s1">'Stan'</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="rubygetconstantnamestring" class="anchor" href="#rubygetconstantnamestring"><span class="octicon octicon-link"></span></a>ruby#getConstant(name:String)</h3>
+
+<p>Returns the Ruby constant specified by <code>name</code>. To get a constant within a
+  module or class, separate the module and constant with ::. Without the
+  separator, it returns an <a href="http://www.ruby-doc.org/core/Object.html">Object</a>
+  constant. <code>getConstant</code> can also be used to return modules.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># const.rb</span>
+<span class="k">module</span> <span class="nn">MyMod</span>
+  <span class="no">MY_CONST</span> <span class="o">=</span> <span class="s2">"abcde"</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">MyClass</span>
+  <span class="no">OTHER_CONST</span> <span class="o">=</span> <span class="s2">"fghi"</span>
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-js"><pre><span class="nx">ruby</span><span class="p">.</span><span class="nx">require</span><span class="p">(</span><span class="s1">'./const'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">RUBY_VERSION</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getConstant</span><span class="p">(</span><span class="s1">'RUBY_VERSION'</span><span class="p">);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">ruby</span><span class="p">.</span><span class="nx">getConstant</span><span class="p">(</span><span class="s1">'MyMod::MY_CONST'</span><span class="p">));</span> <span class="c1">// =&gt; 'abcde'</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">ruby</span><span class="p">.</span><span class="nx">getConstant</span><span class="p">(</span><span class="s1">'MyClass::OTHER_CONST'</span><span class="p">));</span> <span class="c1">// =&gt; 'fghi'</span>
+</pre></div>
+
+<h2>
+<a name="ruby-objects" class="anchor" href="#ruby-objects"><span class="octicon octicon-link"></span></a>Ruby objects</h2>
+
+<h3>
+<a name="methods" class="anchor" href="#methods"><span class="octicon octicon-link"></span></a>Methods</h3>
+
+<p>Wrapped Ruby objects expose their public instance methods through function
+properties.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">Time</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getClass</span><span class="p">(</span><span class="s1">'Time'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Time</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">t</span><span class="p">.</span><span class="nx">year</span><span class="p">());</span> <span class="c1">// =&gt; '2014'</span>
+</pre></div>
+
+<p>The Ruby <code>to_s</code> method is mapped to the JS <code>toString()</code> function.</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">t</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span> <span class="c1">// =&gt; '2014-07-02 00:00:00 -0400'</span>
+</pre></div>
+
+<p>Since node's <code>console.log()</code> function calls <code>inspect</code> with  a <code>depth</code> argument,
+it is ignored when passed to the Ruby <code>inspect</code> method.</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">t</span><span class="p">);</span> <span class="c1">// =&gt; '2014-07-02 00:00:00 -0400'</span>
+</pre></div>
+
+<h3>
+<a name="blocks" class="anchor" href="#blocks"><span class="octicon octicon-link"></span></a>Blocks</h3>
+
+<p>If the last argument in a method call is a function, it is passed to the method
+as a Ruby block.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">Regexp</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getClass</span><span class="p">(</span><span class="s1">'Regexp'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">pat</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Regexp</span><span class="p">(</span><span class="s1">'.at'</span><span class="p">);</span>
+<span class="nx">pat</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="s1">'cat'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'match!'</span><span class="p">);</span>
+<span class="p">});</span> <span class="c1">// =&gt; 'match!'</span>
+</pre></div>
+
+<h2>
+<a name="ruby-modules" class="anchor" href="#ruby-modules"><span class="octicon octicon-link"></span></a>Ruby Modules</h2>
+
+<p>To retrieve Ruby modules, call <code>ruby#getConstant</code>. Modules are returned as JS
+objects with their class methods and constants as properties.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># mod.rb</span>
+
+<span class="k">module</span> <span class="nn">MyMod</span>
+  <span class="no">MY_CONST</span> <span class="o">=</span> <span class="s2">"abcde"</span>
+
+  <span class="k">def</span> <span class="nc">MyMod</span><span class="o">.</span><span class="nf">say_hi</span>
+    <span class="nb">puts</span> <span class="s2">"Hello"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-js"><pre><span class="nx">ruby</span><span class="p">.</span><span class="nx">require</span><span class="p">(</span><span class="s1">'./mod'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">MyMod</span> <span class="o">=</span> <span class="nx">ruby</span><span class="p">.</span><span class="nx">getConstant</span><span class="p">(</span><span class="s1">'MyMod'</span><span class="p">);</span>
+
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">MyMod</span><span class="p">.</span><span class="nx">MY_CONST</span><span class="p">);</span> <span class="c1">// =&gt; 'abcde'</span>
+<span class="nx">MyMod</span><span class="p">.</span><span class="nx">say_hi</span><span class="p">();</span> <span class="c1">// =&gt; 'Hello'</span>
+</pre></div>
+
+<h2>
+<a name="type-conversion" class="anchor" href="#type-conversion"><span class="octicon octicon-link"></span></a>Type conversion</h2>
+
+<h3>
+<a name="from-node" class="anchor" href="#from-node"><span class="octicon octicon-link"></span></a>From node</h3>
+
+<h4>
+<a name="null-and-undefined" class="anchor" href="#null-and-undefined"><span class="octicon octicon-link"></span></a>
+<code>null</code> and <code>undefined</code>
+</h4>
+
+<p>Are converted to <code>nil</code>.</p>
+
+<h4>
+<a name="booleans" class="anchor" href="#booleans"><span class="octicon octicon-link"></span></a>booleans</h4>
+
+<p>Are converted to Ruby booleans.</p>
+
+<h4>
+<a name="numbers" class="anchor" href="#numbers"><span class="octicon octicon-link"></span></a>numbers</h4>
+
+<p>If the number can be determined to be an integer (<code>v8::Value::IsInt32()</code>), it's
+converted to a Ruby <code>Fixnum</code>. Otherwise, it's converted to a <code>Float</code>.</p>
+
+<h4>
+<a name="arrays" class="anchor" href="#arrays"><span class="octicon octicon-link"></span></a>arrays</h4>
+
+<p>Are converted to Ruby arrays. Their contents are recursively converted.</p>
+
+<h4>
+<a name="strings" class="anchor" href="#strings"><span class="octicon octicon-link"></span></a>strings</h4>
+
+<p>Are converted to Ruby strings.</p>
+
+<h4>
+<a name="ruby-objects-1" class="anchor" href="#ruby-objects-1"><span class="octicon octicon-link"></span></a>Ruby objects</h4>
+
+<p>Wrapped Ruby objects are unwrapped.</p>
+
+<h3>
+<a name="from-ruby" class="anchor" href="#from-ruby"><span class="octicon octicon-link"></span></a>From Ruby</h3>
+
+<h4>
+<a name="nil" class="anchor" href="#nil"><span class="octicon octicon-link"></span></a><code>nil</code>
+</h4>
+
+<p>Is converted to <code>undefined</code>.</p>
+
+<h4>
+<a name="booleans-1" class="anchor" href="#booleans-1"><span class="octicon octicon-link"></span></a>booleans</h4>
+
+<p>Are converted to JS booleans.</p>
+
+<h4>
+<a name="floats" class="anchor" href="#floats"><span class="octicon octicon-link"></span></a>
+<code>Float</code>s</h4>
+
+<p>Are converted to JS numbers.</p>
+
+<h4>
+<a name="fixnums" class="anchor" href="#fixnums"><span class="octicon octicon-link"></span></a>
+<code>Fixnum</code>s</h4>
+
+<p>Are converted to JS numbers. Keep in mind that JS stores numbers as double
+precision floating point numbers, meaning that <code>Fixnum</code>s (and <code>Bignum</code>s) will
+lose precision above 2<sup>53</sup>.</p>
+
+<h4>
+<a name="bignums" class="anchor" href="#bignums"><span class="octicon octicon-link"></span></a>
+<code>Bignum</code>s</h4>
+
+<p>Are converted to JS numbers if they are less than or equal to <code>Number.MAX_VALUE</code>.
+Otherwise, they are converted into JS strings. See the above note about precision.</p>
+
+<h4>
+<a name="arrays-1" class="anchor" href="#arrays-1"><span class="octicon octicon-link"></span></a>arrays</h4>
+
+<p>Are converted to JS arrays. Their contents are recursively converted.</p>
+
+<h4>
+<a name="strings-1" class="anchor" href="#strings-1"><span class="octicon octicon-link"></span></a>strings</h4>
+
+<p>Are converted to JS strings.</p>
+
+<h4>
+<a name="symbols" class="anchor" href="#symbols"><span class="octicon octicon-link"></span></a>
+<code>Symbol</code>s</h4>
+
+<p>Are converted to JS strings.</p>
+
+<h4>
+<a name="ruby-objects-2" class="anchor" href="#ruby-objects-2"><span class="octicon octicon-link"></span></a>Ruby objects</h4>
+
+<p>Are wrapped as JS objects.</p>
+
+<h4>
+<a name="ruby-exceptions" class="anchor" href="#ruby-exceptions"><span class="octicon octicon-link"></span></a>Ruby exceptions</h4>
+
+<p>Are caught within norby native code, converted to v8 exceptions and rethrown.
+The thrown v8 exceptions have a <code>rubyStack</code> property that holds the result of
+calling <code>Exception#backtrace</code> on the original Ruby exceptions.</p>
+
+<h2>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>The MIT License (MIT)</p>
+
+<p>Copyright (c) 2014 Rylan Collins</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</p>
+      </section>
+
+      <footer>
+        <span class="ribbon-outer">
+          <span class="ribbon-inner">
+            <p>this project by <a href="https://github.com/rylanc">rylanc</a> can be found on <a href="https://github.com/rylanc/norby">GitHub</a></p>
+          </span>
+          <span class="left-tail"></span>
+          <span class="right-tail"></span>
+        </span>
+        <p>Generated with <a href="http://pages.github.com">GitHub Pages</a> using Merlot</p>
+        <span class="octocat"></span>
+      </footer>
+
+    </div>
+
+    
+  </body>
+</html>
